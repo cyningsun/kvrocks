@@ -37,6 +37,8 @@ FetchContent_GetProperties(tbb)
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
   Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/modules # to locate SnappyConfig.cmake
+  WITH_LIBURING=ON
+  USE_COROUTINES=ON
   FAIL_ON_WARNINGS=OFF
   WITH_TESTS=OFF
   WITH_BENCHMARK_TOOLS=OFF
@@ -46,7 +48,7 @@ FetchContent_MakeAvailableWithArgs(rocksdb
   WITH_LZ4=ON
   WITH_ZLIB=ON
   WITH_ZSTD=ON
-  WITH_GFLAGS=OFF
+  WITH_GFLAGS=ON
   WITH_TBB=ON
   USE_RTTI=ON
   ROCKSDB_BUILD_SHARED=OFF
