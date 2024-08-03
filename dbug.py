@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Usage: python dbug.py <directory> <debug_header> <debug_code>
+# Example: python dbug.py src "#include\"dbug.h\"" "DBUG_TRACE;"
 import os
 import re
 import argparse
@@ -21,11 +25,14 @@ def insert_line_after_function(file_content, node, insert_line):
     func_start_index = node.extent.start.line - 1  # lines are 0-indexed in Python
 
     break_start_line, break_end_line = get_function_body_lines(node)
+    if break_start_line is None or break_end_line is None:
+        return file_content, changed
     #print(f'Function body start: {body_start}, end: {body_end}')
     if break_start_line == break_end_line:
         print(f'【inline】break_start_line: {break_start_line}, break_end_line: {break_end_line}')
         # insert inline after { 
         for i in range(break_start_line-1, break_end_line):
+            print(f'len(lines): {len(lines)}, i: {i}')
             if '{' in lines[i]:
                 if insert_line in lines[i]:
                     break
@@ -53,7 +60,7 @@ def insert_line_after_function(file_content, node, insert_line):
 # Function to process each node in the AST
 def process_node(node, file_content, debug_code):
     changed = False
-    if node.kind == cindex.CursorKind.FUNCTION_DECL:
+    if node.kind in {cindex.CursorKind.FUNCTION_DECL, cindex.CursorKind.CXX_METHOD}:
         print(f'Found function: {node.spelling} at line {node.extent.start.line}')
         subChanged = False
         file_content,subChanged = insert_line_after_function(file_content, node, debug_code)
@@ -85,7 +92,7 @@ def insert_include_after_includes(file_content, include_line):
 def insert_debug_code(file_path,debug_header, debug_code):
     # Parse the source file with libclang, ignoring include files
     index = cindex.Index.create()
-    args = ['-Xclang', '-fno-autolink', '-nostdinc', '-fno-eliminate-unused-debug-types']  # Add additional arguments as needed
+    args = ['-Xclang', '-fno-autolink', '-nostdinc', '-nostdinc++', '-I/nonexistentpath', '-fsyntax-only', '-isystem', '/nonexistentpath', '-D__SOURCE__','-fno-delayed-template-parsing']  # Add additional arguments as needed
     translation_unit = index.parse(file_path, args=args)
 
     # Read the source file
@@ -109,12 +116,14 @@ def process_files(directory, debug_header, debug_code):
         print(f"Error: {directory} is not a valid directory.")
         return
 
-    file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
+    #file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
+    file_patterns = ['**/*.cc', '**/*.cpp']
     skip_patterns = ['util/dbug.h', 'util/dbug.cpp']
     file_count = 0
     for pattern in file_patterns:
         for file_path in glob.iglob(os.path.join(directory, pattern), recursive=True):
             if any([re.match(skip_pattern, file_path) for skip_pattern in skip_patterns]):
+                print(f'Skipping file: {file_path}')
                 continue
             print(f'Processing file: {file_path}')
             insert_debug_code(file_path,debug_header, debug_code)
