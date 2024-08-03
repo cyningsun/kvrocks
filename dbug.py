@@ -58,8 +58,13 @@ def insert_line_after_function(file_content, node, insert_line):
     return "\n".join(lines), changed
 
 # Function to process each node in the AST
-def process_node(node, file_content, debug_code):
+def process_node(source_file, node, file_content, debug_code):
     changed = False
+
+    # Skip nodes that are not in the source file
+    if node.location.file and node.location.file.name != source_file:
+        return file_content, changed
+
     if node.kind in {cindex.CursorKind.FUNCTION_DECL, cindex.CursorKind.CXX_METHOD}:
         print(f'Found function: {node.spelling} at line {node.extent.start.line}')
         subChanged = False
@@ -73,7 +78,7 @@ def process_node(node, file_content, debug_code):
 
     for child in children:
         subChanged = False
-        file_content,subChanged = process_node(child, file_content, debug_code)
+        file_content,subChanged = process_node(source_file, child, file_content, debug_code)
         if subChanged:
             changed = True
 
@@ -101,7 +106,7 @@ def insert_debug_code(file_path,debug_header, debug_code):
 
     # Process the AST and insert the test line in each function
     changed = False
-    new_file_content,changed = process_node(translation_unit.cursor, file_content, debug_code)
+    new_file_content,changed = process_node(file_path, translation_unit.cursor, file_content, debug_code)
 
     if changed:
         new_file_content = insert_include_after_includes(new_file_content, debug_header)
@@ -118,11 +123,16 @@ def process_files(directory, debug_header, debug_code):
 
     #file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
     file_patterns = ['**/*.cc', '**/*.cpp']
-    skip_patterns = ['util/dbug.h', 'util/dbug.cpp']
+    skip_patterns = ['.*/dbug.h', '.*/dbug.cc']
     file_count = 0
     for pattern in file_patterns:
         for file_path in glob.iglob(os.path.join(directory, pattern), recursive=True):
-            if any([re.match(skip_pattern, file_path) for skip_pattern in skip_patterns]):
+            match = False
+            for skip_pattern in skip_patterns:
+                if re.match(skip_pattern, file_path):
+                    match = True
+                    break
+            if match:
                 print(f'Skipping file: {file_path}')
                 continue
             print(f'Processing file: {file_path}')
