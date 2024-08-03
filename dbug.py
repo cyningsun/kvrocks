@@ -94,8 +94,8 @@ def insert_include_after_includes(file_content, include_line):
     lines = file_content.splitlines()
     include_indices = [i for i, line in enumerate(lines) if re.match(r'#include\s+[<"].*[>"]', line)]
     if include_indices:
-        last_include_index = include_indices[-1]
-        lines.insert(last_include_index + 1, include_line)
+        first_include_index = include_indices[0]
+        lines.insert(first_include_index, include_line)
     else:
         lines.insert(0, include_line)
     return "\n".join(lines)
