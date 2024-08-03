@@ -18,11 +18,17 @@ def get_function_body_lines(node):
             break
     return start_line, end_line
 
+def is_constexpr_function(node):
+    for token in node.get_tokens():
+        if token.spelling == 'constexpr':
+            return True
+    return False
+
+
 # Helper function to insert line after function definition
 def insert_line_after_function(file_content, node, insert_line):
     lines = file_content.splitlines()
     changed = False
-    func_start_index = node.extent.start.line - 1  # lines are 0-indexed in Python
 
     break_start_line, break_end_line = get_function_body_lines(node)
     if break_start_line is None or break_end_line is None:
@@ -65,7 +71,7 @@ def process_node(source_file, node, file_content, debug_code):
     if node.location.file and node.location.file.name != source_file:
         return file_content, changed
 
-    if node.kind in {cindex.CursorKind.FUNCTION_DECL, cindex.CursorKind.CXX_METHOD}:
+    if node.kind in {cindex.CursorKind.FUNCTION_DECL, cindex.CursorKind.CXX_METHOD} and not is_constexpr_function(node):
         print(f'Found function: {node.spelling} at line {node.extent.start.line}')
         subChanged = False
         file_content,subChanged = insert_line_after_function(file_content, node, debug_code)
@@ -121,8 +127,8 @@ def process_files(directory, debug_header, debug_code):
         print(f"Error: {directory} is not a valid directory.")
         return
 
-    #file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
-    file_patterns = ['**/*.cc', '**/*.cpp']
+    file_patterns = ['**/*.hpp', '**/*.h', '**/*.cc', '**/*.cpp']
+    #file_patterns = ['**/*.cc', '**/*.cpp']
     skip_patterns = ['.*/dbug.h', '.*/dbug.cc']
     file_count = 0
     for pattern in file_patterns:

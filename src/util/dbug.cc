@@ -95,7 +95,7 @@
 
 
 
-#include "my_dbug.h"
+#include "dbug.h"
 
 #ifdef HAVE_FNMATCH_H
 #include <fnmatch.h>
