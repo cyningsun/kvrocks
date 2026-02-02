@@ -469,6 +469,84 @@ else()
 endif()
 
 # ============================================================================
+# 步骤 3.6: 编译和安装 libevent（为 folly 使用）
+# ============================================================================
+# folly 需要 libevent，为了避免构建树路径依赖问题，单独编译和安装 libevent
+set(LIBEVENT_INSTALL_DIR ${CMAKE_BINARY_DIR}/libevent-install)
+
+if(NOT EXISTS ${LIBEVENT_INSTALL_DIR}/lib/libevent.a)
+  message(STATUS "Building and installing libevent for folly...")
+  
+  # 获取 libevent 源码
+  FetchContent_GetProperties(libevent)
+  if(NOT libevent_POPULATED)
+    FetchContent_Populate(libevent)
+  endif()
+  
+  # 设置 libevent 的二进制目录
+  set(libevent_INSTALL_BINARY_DIR ${CMAKE_BINARY_DIR}/libevent-install-build)
+  
+  # 判断是否需要 OpenSSL
+  set(libevent_disable_ssl ON)
+  if(ENABLE_OPENSSL)
+    set(libevent_disable_ssl OFF)
+  endif()
+  
+  # 配置 libevent
+  execute_process(
+    COMMAND ${CMAKE_COMMAND}
+      -S ${libevent_SOURCE_DIR}
+      -B ${libevent_INSTALL_BINARY_DIR}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX=${LIBEVENT_INSTALL_DIR}
+      -DEVENT__DISABLE_TESTS=ON
+      -DEVENT__DISABLE_REGRESS=ON
+      -DEVENT__DISABLE_SAMPLES=ON
+      -DEVENT__DISABLE_OPENSSL=${libevent_disable_ssl}
+      -DEVENT__DISABLE_MBEDTLS=ON
+      -DEVENT__LIBRARY_TYPE=STATIC
+      -DEVENT__DISABLE_BENCHMARK=ON
+      -DEVENT__DISABLE_DEBUG_MODE=ON
+      -DBUILD_SHARED_LIBS=OFF
+    RESULT_VARIABLE LIBEVENT_CONFIG_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/libevent_config.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/libevent_config_error.log
+  )
+  
+  if(NOT LIBEVENT_CONFIG_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to configure libevent. Check ${CMAKE_BINARY_DIR}/libevent_config_error.log")
+  endif()
+  
+  # 编译 libevent
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} --build ${libevent_INSTALL_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
+    RESULT_VARIABLE LIBEVENT_BUILD_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/libevent_build.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/libevent_build_error.log
+  )
+  
+  if(NOT LIBEVENT_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build libevent. Check ${CMAKE_BINARY_DIR}/libevent_build_error.log")
+  endif()
+  
+  # 安装 libevent
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} --install ${libevent_INSTALL_BINARY_DIR} --prefix ${LIBEVENT_INSTALL_DIR}
+    RESULT_VARIABLE LIBEVENT_INSTALL_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/libevent_install.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/libevent_install_error.log
+  )
+  
+  if(NOT LIBEVENT_INSTALL_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to install libevent. Check ${CMAKE_BINARY_DIR}/libevent_install_error.log")
+  endif()
+  
+  message(STATUS "libevent built and installed successfully for folly")
+else()
+  message(STATUS "libevent already installed at ${LIBEVENT_INSTALL_DIR}")
+endif()
+
+# ============================================================================
 # 步骤 4: 编译和安装 folly
 # ============================================================================
 # 设置 folly 的安装目录
@@ -489,16 +567,17 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   # 配置 folly
   # 构建 CMAKE_PREFIX_PATH 字符串（用分号分隔）
   # 使用 FOLLY_FMT_INSTALL_DIR（fmt 9.1.0）而不是 FMT_INSTALL_DIR（fmt 12.1.0）
-  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FAST_FLOAT_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR}")
+  # 包含 LIBEVENT_INSTALL_DIR，让 folly 能找到已安装的 libevent
+  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FAST_FLOAT_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
   
   # 设置 Boost 的路径（让 folly 能找到 Boost）
   set(BOOST_ROOT ${BOOST_INSTALL_DIR})
   set(BOOST_INCLUDEDIR ${BOOST_INSTALL_DIR}/include)
   set(BOOST_LIBRARYDIR ${BOOST_INSTALL_DIR}/lib)
   
-  # 设置 libevent 的路径（libevent 在主构建树中编译，传递其头文件和库路径）
-  set(LIBEVENT_INCLUDE_DIR "${libevent_SOURCE_DIR}/include;${libevent_BINARY_DIR}/include")
-  set(LIBEVENT_LIB_DIR "${libevent_BINARY_DIR}/lib")
+  # 设置 libevent 的路径（使用已安装的 libevent）
+  set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
+  set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}

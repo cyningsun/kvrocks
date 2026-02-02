@@ -25,8 +25,8 @@ include(cmake/utils.cmake)
 # 依赖：OpenSSL 
 # 使用 nist-branch-snapshot-2018-11 标签
 FetchContent_DeclareGitHubWithMirror(liboqs
-  open-quantum-safe/liboqs nist-branch-snapshot-2018-11
-  MD5=cca4afb43d098381fcad6b3c19ddcae8
+  open-quantum-safe/liboqs 0.12.0
+  MD5=c45b03804626c6d7332163f93af4711f
 )
 
 # 获取 liboqs 源码

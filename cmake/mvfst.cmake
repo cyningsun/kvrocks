@@ -44,11 +44,13 @@ if(NOT EXISTS ${MVFST_INSTALL_DIR}/lib/libmvfst_transport.a)
   set(mvfst_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/mvfst-build)
   
   # 构建 CMAKE_PREFIX_PATH（包括所有依赖）
-  set(MVFST_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR}")
+  set(MVFST_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
   
   # 设置 libevent 和 zstd 的路径
-  set(LIBEVENT_INCLUDE_DIR "${libevent_SOURCE_DIR}/include;${libevent_BINARY_DIR}/include")
-  set(LIBEVENT_LIB_DIR "${libevent_BINARY_DIR}/lib")
+  # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
+  set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
+  set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
+  # zstd 在主构建树中
   set(ZSTD_INCLUDE_DIR "${zstd_SOURCE_DIR}/lib")
   set(ZSTD_LIBRARY "${zstd_SOURCE_DIR}/lib/libzstd.a")
   

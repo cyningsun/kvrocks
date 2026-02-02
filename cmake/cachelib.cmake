@@ -22,7 +22,7 @@ include_guard()
 include(cmake/utils.cmake)
 
 FetchContent_Declare(cachelib
-  URL https://github.com/facebook/CacheLib/archive/refs/tags/v2024.02.26.00.tar.gz
+  URL https://github.com/facebook/CacheLib/archive/refs/tags/v2025.02.10.00.tar.gz
   DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
