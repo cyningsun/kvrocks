@@ -27,7 +27,7 @@ option(ENABLE_ASAN "enable address sanitizer" OFF)
 option(ENABLE_TSAN "enable thread sanitizer" OFF)
 option(ENABLE_UBSAN "enable undefined behavior sanitizer" OFF)
 option(ASAN_WITH_LSAN "enable leak sanitizer while address sanitizer is enabled" ON)
-option(ENABLE_STATIC_LIBSTDCXX "link kvrocks with static library of libstd++ instead of shared library" ON)
+option(ENABLE_STATIC_LIBSTDCXX "link kvrocks with static library of libstd++ instead of shared library" OFF)
 option(ENABLE_LUAJIT "enable use of luaJIT instead of lua" ON)
 option(ENABLE_OPENSSL "enable openssl to support tls connection" OFF)
 option(ENABLE_LTO "enable link-time optimization" ON)
@@ -240,6 +240,7 @@ list(APPEND EXTERNAL_LIBS tsl_hat_trie)
 list(APPEND EXTERNAL_LIBS pegtl)
 list(APPEND EXTERNAL_LIBS range-v3)
 list(APPEND EXTERNAL_LIBS cpptrace::cpptrace)
+list(APPEND EXTERNAL_LIBS cachelib_rocksdb_secondary_cache)
 
 # Add git sha to version.h
 find_package(Git REQUIRED)
@@ -276,7 +277,30 @@ list(FILTER KVROCKS_SRCS EXCLUDE REGEX src/cli/main.cc)
 
 add_library(kvrocks_objs OBJECT ${KVROCKS_SRCS})
 
-target_include_directories(kvrocks_objs PUBLIC src src/common src/vendor ${PROJECT_BINARY_DIR} ${Backtrace_INCLUDE_DIR})
+target_include_directories(kvrocks_objs PUBLIC 
+    src 
+    src/common 
+    src/vendor 
+    ${PROJECT_BINARY_DIR} 
+    ${Backtrace_INCLUDE_DIR}
+    ${CACHELIB_SOURCE_DIR}
+    ${CACHELIB_INSTALL_DIR}/include
+    ${FOLLY_INSTALL_DIR}/include
+    ${FIZZ_INSTALL_DIR}/include
+    ${WANGLE_INSTALL_DIR}/include
+    ${MVFST_INSTALL_DIR}/include
+    ${FBTHRIFT_INSTALL_DIR}/include
+    ${BOOST_INSTALL_DIR}/include
+    ${GFLAGS_INSTALL_DIR}/include
+    ${GLOG_INSTALL_DIR}/include
+    ${DOUBLE_CONVERSION_INSTALL_DIR}/include
+    ${FOLLY_FMT_INSTALL_DIR}/include
+    ${GOOGLETEST_INSTALL_DIR}/include
+    ${ZSTD_INSTALL_DIR}/include
+    ${LIBEVENT_INSTALL_DIR}/include
+    ${SPARSEMAP_INCLUDE_DIR}
+)
+
 target_compile_features(kvrocks_objs PUBLIC cxx_std_17)
 target_compile_options(kvrocks_objs PUBLIC -Wall -Wpedantic -Wsign-compare -Wreturn-type -fno-omit-frame-pointer)
 target_compile_options(kvrocks_objs PUBLIC -Werror=unused-parameter)

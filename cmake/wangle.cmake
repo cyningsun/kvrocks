@@ -25,8 +25,8 @@ include(cmake/utils.cmake)
 # 依赖：folly, fizz, googletest
 # 注意：wangle 的 CMakeLists.txt 在 wangle/wangle 子目录中
 FetchContent_DeclareGitHubWithMirror(wangle
-  facebook/wangle v2024.01.01.00
-  MD5=6fac5569b0e71a5b3339479bdd384cc1
+  facebook/wangle v2024.02.19.00
+  MD5=7561a688d3512118afb1375bcdd1168e
 )
 
 # 设置 wangle 的安装目录
@@ -51,9 +51,10 @@ if(NOT EXISTS ${WANGLE_INSTALL_DIR}/lib/libwangle.a)
   # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 在主构建树中
-  set(ZSTD_INCLUDE_DIR "${zstd_SOURCE_DIR}/lib")
-  set(ZSTD_LIBRARY "${zstd_SOURCE_DIR}/lib/libzstd.a")
+  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
+  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
+  set(ZSTD_INCLUDE_DIR "${ZSTD_INSTALL_DIR}/include")
+  set(ZSTD_LIBRARY "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -62,7 +63,7 @@ if(NOT EXISTS ${WANGLE_INSTALL_DIR}/lib/libwangle.a)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX=${WANGLE_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${WANGLE_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${zstd_SOURCE_DIR}/lib"
+      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
       "-DCMAKE_INCLUDE_PATH=${ZSTD_INCLUDE_DIR}"
       "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"

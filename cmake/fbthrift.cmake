@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # fbthrift - Facebook 的 Thrift RPC 框架
 # 依赖：folly, fizz, wangle, mvfst, xxhash, zstd, fmt, libsodium
 FetchContent_DeclareGitHubWithMirror(fbthrift
-  facebook/fbthrift v2024.01.01.00
-  MD5=984f6f512e30ea5596639853beac988e
+  facebook/fbthrift v2024.02.19.00
+  MD5=8212308c85fde7a2fff109f32a9b3f69
 )
 
 # 设置 fbthrift 的安装目录
@@ -50,9 +50,10 @@ if(NOT EXISTS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
   # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 在主构建树中
-  set(ZSTD_INCLUDE_DIRS "${zstd_SOURCE_DIR}/lib")
-  set(ZSTD_LIBRARIES "${zstd_SOURCE_DIR}/lib/libzstd.a")
+  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
+  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
+  set(ZSTD_INCLUDE_DIRS "${ZSTD_INSTALL_DIR}/include")
+  set(ZSTD_LIBRARIES "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -61,10 +62,10 @@ if(NOT EXISTS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX=${FBTHRIFT_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${FBTHRIFT_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${zstd_SOURCE_DIR}/lib"
+      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
       "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
-      "-DZSTD_ROOT=${zstd_SOURCE_DIR}"
+      "-DZSTD_ROOT=${ZSTD_INSTALL_DIR}"
       "-DZSTD_INCLUDE_DIRS=${ZSTD_INCLUDE_DIRS}"
       "-DZSTD_LIBRARIES=${ZSTD_LIBRARIES}"
       -DBUILD_SHARED_LIBS=OFF

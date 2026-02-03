@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # fizz - Facebook 的 TLS 1.3 实现
 # 依赖：folly, libsodium, liboqs, zstd
 FetchContent_DeclareGitHubWithMirror(fizz
-  facebookincubator/fizz v2024.01.01.00
-  MD5=d36420aa962a401a8633ab4d5fd1ecfe
+  facebookincubator/fizz v2024.02.19.00
+  MD5=ac09a0c2ab96e2943991cf1d22075e15
 )
 
 # 设置 fizz 的安装目录
@@ -50,12 +50,14 @@ if(NOT EXISTS ${FIZZ_INSTALL_DIR}/lib/libfizz.a)
   # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 在主构建树中
-  set(ZSTD_INCLUDE_DIR "${zstd_SOURCE_DIR}/lib")
-  set(ZSTD_LIBRARY "${zstd_SOURCE_DIR}/lib/libzstd.a")
+  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
+  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
+  set(ZSTD_INCLUDE_DIR "${ZSTD_INSTALL_DIR}/include")
+  set(ZSTD_LIBRARY "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
   
   # 设置环境变量以帮助 find_library 找到 zstd
-  set(ENV{CMAKE_PREFIX_PATH} "${zstd_SOURCE_DIR}/lib")
+  set(ENV{CMAKE_PREFIX_PATH} "${ZSTD_INSTALL_DIR}/lib")
+  set(AEGIS_INCLUDE_FLAGS "-I${fizz_SOURCE_DIR}/fizz/third-party/libsodium-aegis")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -64,7 +66,7 @@ if(NOT EXISTS ${FIZZ_INSTALL_DIR}/lib/libfizz.a)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX=${FIZZ_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${FIZZ_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${zstd_SOURCE_DIR}/lib"
+      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
       "-DCMAKE_INCLUDE_PATH=${ZSTD_INCLUDE_DIR}"
       "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
@@ -72,9 +74,12 @@ if(NOT EXISTS ${FIZZ_INSTALL_DIR}/lib/libfizz.a)
       "-DZSTD_INCLUDE_DIR=${ZSTD_INCLUDE_DIR}"
       "-DZSTD_LIBRARY=${ZSTD_LIBRARY}"
       "-DZSTD_LIBRARY_RELEASE=${ZSTD_LIBRARY}"
+      "-DCMAKE_CXX_FLAGS=${AEGIS_INCLUDE_FLAGS}"
+      "-DCMAKE_C_FLAGS=${AEGIS_INCLUDE_FLAGS}"
       -DBUILD_SHARED_LIBS=OFF
       -DBUILD_TESTS=OFF
       -DBUILD_EXAMPLES=OFF
+      -DFIZZ_BUILD_AEGIS=OFF
     RESULT_VARIABLE FIZZ_CONFIG_RESULT
     OUTPUT_FILE ${CMAKE_BINARY_DIR}/fizz_config.log
     ERROR_FILE ${CMAKE_BINARY_DIR}/fizz_config_error.log

@@ -43,6 +43,7 @@
 #include "server/server.h"
 #include "status.h"
 #include "storage/redis_metadata.h"
+#include "storage/rocksdb_io_uring.h"
 
 constexpr const char *kDefaultDir = "/tmp/kvrocks";
 constexpr const char *kDefaultBackupDir = "/tmp/kvrocks/backup";
@@ -313,6 +314,18 @@ Config::Config() {
       {"rocksdb.ttl", false, new UInt64Field(&rocks_db.ttl, kDefaultRocksdbTTL, 0, UINT64_MAX)},
       {"rocksdb.daily_offpeak_time_utc", false, new StringField(&rocks_db.daily_offpeak_time_utc, "")},
 
+      /* rocksdb SSD secondary cache (CacheLib) */
+      {"rocksdb.enable_ssd_secondary_cache", false, new YesNoField(&rocks_db.enable_ssd_secondary_cache, false)},
+      {"rocksdb.ssd_cache_size", false, new IntField(&rocks_db.ssd_cache_size, 0, 0, INT_MAX)},
+      {"rocksdb.ssd_cache_file_path", false, new StringField(&rocks_db.ssd_cache_file_path, "")},
+      {"rocksdb.ssd_cache_block_size", false, new IntField(&rocks_db.ssd_cache_block_size, 4096, 0, INT_MAX)},
+      {"rocksdb.ssd_cache_region_size", false, new IntField(&rocks_db.ssd_cache_region_size, 16, 0, INT_MAX)},
+      {"rocksdb.ssd_cache_admission_policy", false, new StringField(&rocks_db.ssd_cache_admission_policy, "lru")},
+      {"rocksdb.ssd_cache_admission_probability", false,
+       new IntField(&rocks_db.ssd_cache_admission_probability, 100, 0, 100)},
+      {"rocksdb.ssd_cache_max_write_rate", false, new IntField(&rocks_db.ssd_cache_max_write_rate, 0, 0, INT_MAX)},
+      {"rocksdb.ssd_cache_volatile_size", false, new IntField(&rocks_db.ssd_cache_volatile_size, 0, 0, INT_MAX)},
+
       /* rocksdb write options */
       {"rocksdb.write_options.sync", true, new YesNoField(&rocks_db.write_options.sync, false)},
       {"rocksdb.write_options.disable_wal", true, new YesNoField(&rocks_db.write_options.disable_wal, false)},
@@ -325,6 +338,12 @@ Config::Config() {
 
       /* rocksdb read options */
       {"rocksdb.read_options.async_io", false, new YesNoField(&rocks_db.read_options.async_io, true)},
+
+      {"rocksdb.read_options.optimize_multiget_for_io", false,
+       new YesNoField(&rocks_db.read_options.optimize_multiget_for_io, true)},
+
+      /* rocksdb io_uring (Linux) */
+      {"rocksdb.use_io_uring", false, new YesNoField(&rocks_db.use_io_uring, false)},
   };
   for (auto &wrapper : fields) {
     auto &field = wrapper.field;
@@ -771,6 +790,16 @@ void Config::initFieldCallback() {
           {"rocksdb.max_subcompactions", set_db_option_cb},
           {"rocksdb.compaction_readahead_size", set_db_option_cb},
           {"rocksdb.max_background_jobs", set_db_option_cb},
+          {"rocksdb.use_io_uring",
+           [this](Server *srv, [[maybe_unused]] const std::string &k, [[maybe_unused]] const std::string &v) -> Status {
+             if (srv) engine::SetRocksDbIOUringEnable(rocks_db.use_io_uring);
+             return Status::OK();
+           }},
+           {"rocksdb.read_options.optimize_multiget_for_io",
+           []([[maybe_unused]] Server *srv, [[maybe_unused]] const std::string &k,
+              [[maybe_unused]] const std::string &v) -> Status {
+             return Status::OK();
+           }},
 
           {"rocksdb.max_compaction_bytes", set_cf_option_cb},
           {"rocksdb.max_write_buffer_number", set_cf_option_cb},

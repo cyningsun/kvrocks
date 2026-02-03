@@ -43,6 +43,7 @@
 #include "redis_db.h"
 #include "redis_metadata.h"
 #include "rocksdb/cache.h"
+#include "rocksdb_io_uring.h"
 #include "rocksdb/options.h"
 #include "rocksdb/write_batch.h"
 #include "rocksdb_crc32c.h"
@@ -130,6 +131,7 @@ rocksdb::ReadOptions Storage::DefaultScanOptions() const {
 rocksdb::ReadOptions Storage::DefaultMultiGetOptions() const {
   rocksdb::ReadOptions read_options;
   read_options.async_io = config_->rocks_db.read_options.async_io;
+  read_options.optimize_multiget_for_io = config_->rocks_db.read_options.optimize_multiget_for_io;
 
   return read_options;
 }

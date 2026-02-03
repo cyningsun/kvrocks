@@ -33,7 +33,6 @@ include(cmake/utils.cmake)
 FetchContent_Declare(boost
   URL https://github.com/boostorg/boost/releases/download/boost-1.83.0/boost-1.83.0.tar.gz
   URL_HASH MD5=58db882403e0c16b334760f3c3b76ff8
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE
 )
 
 # 在调用 FetchContent_MakeAvailableWithArgs 之前设置 Boost 构建选项

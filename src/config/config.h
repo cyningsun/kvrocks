@@ -253,6 +253,17 @@ struct Config {
     uint64_t ttl = kDefaultRocksdbTTL;
     std::string daily_offpeak_time_utc;
 
+    // SSD secondary cache (CacheLib)
+    bool enable_ssd_secondary_cache = false;
+    int ssd_cache_size = 0;                    // capacity in MB
+    std::string ssd_cache_file_path;            // cache file path
+    int ssd_cache_block_size = 4096;           // block size in bytes
+    int ssd_cache_region_size = 16;            // region size in MB
+    std::string ssd_cache_admission_policy;    // e.g. "lru", "fifo", "twc"
+    int ssd_cache_admission_probability = 100; // 0-100, maps to 0.0-1.0
+    int ssd_cache_max_write_rate = 0;          // max write rate in MB/s, 0 = unlimited
+    int ssd_cache_volatile_size = 0;           // volatile size in MB
+
     struct WriteOptions {
       bool sync;
       bool disable_wal;
@@ -264,7 +275,11 @@ struct Config {
 
     struct ReadOptions {
       bool async_io;
+      bool optimize_multiget_for_io;  // optimize MultiGet for IO (e.g. MGET)
     } read_options;
+
+    // If yes, enable io_uring for RocksDB (Linux). Exposed to RocksDB via RocksDbIOUringEnable().
+    bool use_io_uring = false;
   } rocks_db;
 
   mutable std::mutex backup_mu;

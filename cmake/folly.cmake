@@ -25,11 +25,11 @@ include(cmake/utils.cmake)
 # 参数说明：
 #   folly - 依赖名称
 #   facebook/folly - GitHub 仓库路径
-#   v2024.01.01.00 - 版本标签
+#   v2024.02.26.00 - 版本标签
 #   MD5=... - 下载文件的 MD5 校验和，用于验证下载完整性
 FetchContent_DeclareGitHubWithMirror(folly
-  facebook/folly v2024.01.01.00
-  MD5=4e2a584269ae0ea0a7df0ceedc0c48b9
+  facebook/folly v2024.02.26.00
+  MD5=5a766b94d88be5d006ae712107d00ab8
 )
 
 # 获取已编译依赖的源码目录，用于传递给 folly
@@ -412,7 +412,6 @@ if(NOT EXISTS ${FOLLY_FMT_INSTALL_DIR}/lib/libfmt.a)
   FetchContent_Declare(folly_fmt
     URL https://github.com/fmtlib/fmt/archive/refs/tags/9.1.0.tar.gz
     URL_HASH MD5=21fac48cae8f3b4a5783ae06b443973a
-    DOWNLOAD_EXTRACT_TIMESTAMP TRUE
   )
   
   FetchContent_GetProperties(folly_fmt)
@@ -472,7 +471,7 @@ endif()
 # 步骤 3.6: 编译和安装 libevent（为 folly 使用）
 # ============================================================================
 # folly 需要 libevent，为了避免构建树路径依赖问题，单独编译和安装 libevent
-set(LIBEVENT_INSTALL_DIR ${CMAKE_BINARY_DIR}/libevent-install)
+set(LIBEVENT_INSTALL_DIR ${CMAKE_BINARY_DIR}/libevent-install CACHE PATH "Libevent install directory")
 
 if(NOT EXISTS ${LIBEVENT_INSTALL_DIR}/lib/libevent.a)
   message(STATUS "Building and installing libevent for folly...")
@@ -544,6 +543,75 @@ if(NOT EXISTS ${LIBEVENT_INSTALL_DIR}/lib/libevent.a)
   message(STATUS "libevent built and installed successfully for folly")
 else()
   message(STATUS "libevent already installed at ${LIBEVENT_INSTALL_DIR}")
+endif()
+
+# ============================================================================
+# 步骤 3.7: 编译和安装 zstd（为 Facebook 库使用）
+# ============================================================================
+# fizz, wangle, mvfst, fbthrift, cachelib 都需要 zstd
+# 为了避免构建树路径依赖问题，单独编译和安装 zstd
+
+set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install CACHE PATH "Zstd install directory")
+
+if(NOT EXISTS ${ZSTD_INSTALL_DIR}/lib/libzstd.a)
+  message(STATUS "Building and installing zstd for Facebook libraries...")
+  
+  # 获取 zstd 源码（复用 zstd.cmake 的声明）
+  FetchContent_GetProperties(zstd)
+  if(NOT zstd_POPULATED)
+    FetchContent_Populate(zstd)
+  endif()
+  
+  # 设置 zstd 的二进制目录
+  set(zstd_INSTALL_BINARY_DIR ${CMAKE_BINARY_DIR}/zstd-install-build)
+  
+  # 配置 zstd（使用 build/cmake）
+  execute_process(
+    COMMAND ${CMAKE_COMMAND}
+      -S ${zstd_SOURCE_DIR}/build/cmake
+      -B ${zstd_INSTALL_BINARY_DIR}
+      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
+      -DCMAKE_INSTALL_PREFIX=${ZSTD_INSTALL_DIR}
+      -DBUILD_SHARED_LIBS=OFF
+      -DZSTD_BUILD_PROGRAMS=OFF
+      -DZSTD_BUILD_CONTRIB=OFF
+      -DZSTD_BUILD_TESTS=OFF
+    RESULT_VARIABLE ZSTD_CONFIG_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/zstd_config.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/zstd_config_error.log
+  )
+  
+  if(NOT ZSTD_CONFIG_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to configure zstd. Check ${CMAKE_BINARY_DIR}/zstd_config_error.log")
+  endif()
+  
+  # 编译 zstd
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} --build ${zstd_INSTALL_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
+    RESULT_VARIABLE ZSTD_BUILD_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/zstd_build.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/zstd_build_error.log
+  )
+  
+  if(NOT ZSTD_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build zstd. Check ${CMAKE_BINARY_DIR}/zstd_build_error.log")
+  endif()
+  
+  # 安装 zstd
+  execute_process(
+    COMMAND ${CMAKE_COMMAND} --install ${zstd_INSTALL_BINARY_DIR} --prefix ${ZSTD_INSTALL_DIR}
+    RESULT_VARIABLE ZSTD_INSTALL_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/zstd_install.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/zstd_install_error.log
+  )
+  
+  if(NOT ZSTD_INSTALL_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to install zstd. Check ${CMAKE_BINARY_DIR}/zstd_install_error.log")
+  endif()
+  
+  message(STATUS "zstd built and installed successfully for Facebook libraries")
+else()
+  message(STATUS "zstd already installed at ${ZSTD_INSTALL_DIR}")
 endif()
 
 # ============================================================================

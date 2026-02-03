@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # mvfst - Facebook 的 QUIC 传输协议实现
 # 依赖：folly, fizz, googletest
 FetchContent_DeclareGitHubWithMirror(mvfst
-  facebook/mvfst v2024.01.01.00
-  MD5=14cc83e55281fb9b407193d85d4120a9
+  facebook/mvfst v2024.02.19.00
+  MD5=f62a8b28fa3febdd7dc498de10b39d87
 )
 
 # 设置 mvfst 的安装目录
@@ -50,9 +50,10 @@ if(NOT EXISTS ${MVFST_INSTALL_DIR}/lib/libmvfst_transport.a)
   # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 在主构建树中
-  set(ZSTD_INCLUDE_DIR "${zstd_SOURCE_DIR}/lib")
-  set(ZSTD_LIBRARY "${zstd_SOURCE_DIR}/lib/libzstd.a")
+  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
+  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
+  set(ZSTD_INCLUDE_DIR "${ZSTD_INSTALL_DIR}/include")
+  set(ZSTD_LIBRARY "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -61,7 +62,7 @@ if(NOT EXISTS ${MVFST_INSTALL_DIR}/lib/libmvfst_transport.a)
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
       -DCMAKE_INSTALL_PREFIX=${MVFST_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${MVFST_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${zstd_SOURCE_DIR}/lib"
+      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
       "-DCMAKE_INCLUDE_PATH=${ZSTD_INCLUDE_DIR}"
       "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
