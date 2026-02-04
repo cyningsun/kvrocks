@@ -664,6 +664,7 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
       -DBUILD_EXAMPLES=OFF
       -DBUILD_BENCHMARKS=OFF
       -DPYTHON_EXTENSIONS=OFF
+      -DFOLLY_USE_LIBURING=OFF # AsyncIoUringSocket is not used 
     RESULT_VARIABLE FOLLY_CONFIG_RESULT
     OUTPUT_FILE ${CMAKE_BINARY_DIR}/folly_config.log
     ERROR_FILE ${CMAKE_BINARY_DIR}/folly_config_error.log

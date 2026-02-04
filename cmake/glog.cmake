@@ -32,13 +32,23 @@ FetchContent_DeclareGitHubWithMirror(glog
   MD5=2286d65cc3714b26e085a3bc62ce38a5
 )
 
+# 获取 gflags 的构建目录，让 glog 能找到我们构建的 gflags
+# 而不是系统安装的 gflags
+FetchContent_GetProperties(gflags)
+
+# 将 gflags 构建目录添加到 CMAKE_PREFIX_PATH
+# 这样 glog 的 find_package(gflags) 会优先找到我们构建的版本
+list(APPEND CMAKE_PREFIX_PATH ${gflags_BINARY_DIR})
+
 # 使用项目的 FetchContent_MakeAvailableWithArgs 函数下载并编译 glog
 # 配置选项说明：
 #   BUILD_SHARED_LIBS=OFF - 编译静态库
 #   BUILD_TESTING=OFF - 禁用测试构建
 #   WITH_PKGCONFIG=OFF - 禁用 pkg-config 支持
+#   WITH_GFLAGS=OFF - 禁用 gflags 依赖，因为我们已经有了
 FetchContent_MakeAvailableWithArgs(glog
   BUILD_SHARED_LIBS=OFF
   BUILD_TESTING=OFF
   WITH_PKGCONFIG=OFF
+  WITH_GFLAGS=OFF
 )

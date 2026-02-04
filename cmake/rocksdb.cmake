@@ -34,12 +34,25 @@ FetchContent_GetProperties(jemalloc)
 FetchContent_GetProperties(snappy)
 FetchContent_GetProperties(tbb)
 
-FetchContent_GetProperties(folly)
+# Get folly and its dependencies installation directories
+# Note: folly must be built before rocksdb when USE_COROUTINES is enabled
+set(FOLLY_INSTALL_DIR ${CMAKE_BINARY_DIR}/folly-install)
+set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install)
+set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
+set(GFLAGS_INSTALL_DIR ${CMAKE_BINARY_DIR}/gflags-install)
+set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/boost-install)
+
+# Add folly and its dependencies to CMAKE_PREFIX_PATH
+# so RocksDB can find them when USE_COROUTINES is enabled
+list(APPEND CMAKE_PREFIX_PATH ${FOLLY_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${FMT_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${GLOG_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${GFLAGS_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${BOOST_INSTALL_DIR})
 
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
   Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/modules # to locate SnappyConfig.cmake
-  CMAKE_PREFIX_PATH=${FOLLY_INSTALL_DIR} # for folly-config.cmake
   FAIL_ON_WARNINGS=OFF
   WITH_TESTS=OFF
   WITH_BENCHMARK_TOOLS=OFF
