@@ -23,7 +23,7 @@
 #include <iostream>
 #include <iterator>
 
-#include "fmt/base.h"
+#include "fmt/core.h"
 #include "version.h"
 
 inline std::string PrintVersion() {

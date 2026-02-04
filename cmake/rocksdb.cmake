@@ -34,9 +34,12 @@ FetchContent_GetProperties(jemalloc)
 FetchContent_GetProperties(snappy)
 FetchContent_GetProperties(tbb)
 
+FetchContent_GetProperties(folly)
+
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
   Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/modules # to locate SnappyConfig.cmake
+  CMAKE_PREFIX_PATH=${FOLLY_INSTALL_DIR} # for folly-config.cmake
   FAIL_ON_WARNINGS=OFF
   WITH_TESTS=OFF
   WITH_BENCHMARK_TOOLS=OFF
@@ -48,6 +51,8 @@ FetchContent_MakeAvailableWithArgs(rocksdb
   WITH_ZSTD=ON
   WITH_GFLAGS=OFF
   WITH_TBB=ON
+  WITH_LIBURING=ON
+  USE_COROUTINES=ON
   USE_RTTI=ON
   ROCKSDB_BUILD_SHARED=OFF
   WITH_JEMALLOC=${COMPILE_WITH_JEMALLOC}

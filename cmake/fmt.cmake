@@ -19,9 +19,10 @@ include_guard()
 
 include(cmake/utils.cmake)
 
+# 使用 fmt 9.1.0 以兼容 folly v2024.02.26.00 和 spdlog 1.11.0
 FetchContent_DeclareGitHubWithMirror(fmt
-  fmtlib/fmt 12.1.0
-  MD5=eeecea0834d5f7cb6430527e90cc8379
+  fmtlib/fmt 9.1.0
+  MD5=e6754011ff56bfc37631fcc90961e377
 )
 
 FetchContent_MakeAvailableWithArgs(fmt)
