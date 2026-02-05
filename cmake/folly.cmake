@@ -30,6 +30,8 @@ include(cmake/utils.cmake)
 FetchContent_DeclareGitHubWithMirror(folly
   facebook/folly v2024.02.26.00
   MD5=5a766b94d88be5d006ae712107d00ab8
+  #facebook/folly v2024.12.16.00
+  #MD5=fb2761dd88e7566bc4d77a621235dfe3
 )
 
 # 获取已编译依赖的源码目录，用于传递给 folly
@@ -398,73 +400,70 @@ set(FOLLY_CMAKE_PREFIX_PATH
 list(APPEND CMAKE_PREFIX_PATH ${FOLLY_CMAKE_PREFIX_PATH})
 
 # ============================================================================
-# 步骤 3.5: 编译和安装 fmt（为 folly 使用兼容版本）
+# 步骤 3.5: 编译和安装 fmt（为 folly 使用）
 # ============================================================================
-# folly v2024.01.01.00 兼容 fmt 9.1.0 到 10.0 之前的版本
-# 主项目使用 fmt 12.1.0，但 folly 需要 9.x 版本
-# 因此为 folly 单独编译和安装 fmt 9.1.0
-set(FOLLY_FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/folly-fmt-install)
+# 主项目已经使用 fmt 9.1.0（在 cmake/fmt.cmake 中配置）
+# 为了让 folly 找到 fmt，需要先编译和安装它
+set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install CACHE PATH "fmt install directory")
 
-if(NOT EXISTS ${FOLLY_FMT_INSTALL_DIR}/lib/libfmt.a)
-  message(STATUS "Building and installing fmt 9.1.0 for folly...")
+if(NOT EXISTS ${FMT_INSTALL_DIR}/lib/libfmt.a)
+  message(STATUS "Building and installing fmt for folly...")
   
-  # 下载 fmt 9.1.0
-  FetchContent_Declare(folly_fmt
-    URL https://github.com/fmtlib/fmt/archive/refs/tags/9.1.0.tar.gz
-    URL_HASH MD5=21fac48cae8f3b4a5783ae06b443973a
-  )
-  
-  FetchContent_GetProperties(folly_fmt)
-  if(NOT folly_fmt_POPULATED)
-    FetchContent_Populate(folly_fmt)
+  # 获取 fmt 源码（复用主项目的声明）
+  FetchContent_GetProperties(fmt)
+  if(NOT fmt_POPULATED)
+    FetchContent_Populate(fmt)
   endif()
   
-  # 配置 fmt 9.1.0
+  # 设置 fmt 的二进制目录
+  set(fmt_INSTALL_BINARY_DIR ${CMAKE_BINARY_DIR}/fmt-install-build)
+  
+  # 配置 fmt
   execute_process(
     COMMAND ${CMAKE_COMMAND}
-      -S ${folly_fmt_SOURCE_DIR}
-      -B ${folly_fmt_BINARY_DIR}
+      -S ${fmt_SOURCE_DIR}
+      -B ${fmt_INSTALL_BINARY_DIR}
       -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_INSTALL_PREFIX=${FOLLY_FMT_INSTALL_DIR}
+      -DCMAKE_INSTALL_PREFIX=${FMT_INSTALL_DIR}
       -DBUILD_SHARED_LIBS=OFF
       -DFMT_TEST=OFF
       -DFMT_DOC=OFF
-    RESULT_VARIABLE FOLLY_FMT_CONFIG_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/folly_fmt_config.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/folly_fmt_config_error.log
+    RESULT_VARIABLE FMT_CONFIG_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fmt_install_config.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/fmt_install_config_error.log
   )
   
-  if(NOT FOLLY_FMT_CONFIG_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to configure fmt 9.1.0. Check ${CMAKE_BINARY_DIR}/folly_fmt_config_error.log")
+  if(NOT FMT_CONFIG_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to configure fmt. Check ${CMAKE_BINARY_DIR}/fmt_install_config_error.log")
   endif()
   
-  # 编译 fmt 9.1.0
+  # 编译 fmt
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --build ${folly_fmt_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
-    RESULT_VARIABLE FOLLY_FMT_BUILD_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/folly_fmt_build.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/folly_fmt_build_error.log
+    COMMAND ${CMAKE_COMMAND} --build ${fmt_INSTALL_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
+    RESULT_VARIABLE FMT_BUILD_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fmt_install_build.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/fmt_install_build_error.log
   )
   
-  if(NOT FOLLY_FMT_BUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to build fmt 9.1.0. Check ${CMAKE_BINARY_DIR}/folly_fmt_build_error.log")
+  if(NOT FMT_BUILD_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to build fmt. Check ${CMAKE_BINARY_DIR}/fmt_install_build_error.log")
   endif()
   
-  # 安装 fmt 9.1.0
+  # 安装 fmt
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --install ${folly_fmt_BINARY_DIR} --prefix ${FOLLY_FMT_INSTALL_DIR}
-    RESULT_VARIABLE FOLLY_FMT_INSTALL_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/folly_fmt_install.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/folly_fmt_install_error.log
+    COMMAND ${CMAKE_COMMAND} --install ${fmt_INSTALL_BINARY_DIR} --prefix ${FMT_INSTALL_DIR}
+    RESULT_VARIABLE FMT_INSTALL_RESULT
+    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fmt_install_install.log
+    ERROR_FILE ${CMAKE_BINARY_DIR}/fmt_install_install_error.log
   )
   
-  if(NOT FOLLY_FMT_INSTALL_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to install fmt 9.1.0. Check ${CMAKE_BINARY_DIR}/folly_fmt_install_error.log")
+  if(NOT FMT_INSTALL_RESULT EQUAL 0)
+    message(FATAL_ERROR "Failed to install fmt. Check ${CMAKE_BINARY_DIR}/fmt_install_install_error.log")
   endif()
   
-  message(STATUS "fmt 9.1.0 built and installed successfully for folly")
+  message(STATUS "fmt built and installed successfully for folly")
 else()
-  message(STATUS "fmt 9.1.0 already installed at ${FOLLY_FMT_INSTALL_DIR}")
+  message(STATUS "fmt already installed at ${FMT_INSTALL_DIR}")
 endif()
 
 # ============================================================================
@@ -634,9 +633,8 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   
   # 配置 folly
   # 构建 CMAKE_PREFIX_PATH 字符串（用分号分隔）
-  # 使用 FOLLY_FMT_INSTALL_DIR（fmt 9.1.0）而不是 FMT_INSTALL_DIR（fmt 12.1.0）
   # 包含 LIBEVENT_INSTALL_DIR，让 folly 能找到已安装的 libevent
-  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FAST_FLOAT_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
+  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FAST_FLOAT_INSTALL_DIR};${FMT_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
   
   # 设置 Boost 的路径（让 folly 能找到 Boost）
   set(BOOST_ROOT ${BOOST_INSTALL_DIR})
@@ -647,6 +645,18 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
   
+  # 检查编译器是否支持 C++20 协程
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("-std=c++20 -fcoroutines" COMPILER_SUPPORTS_COROUTINES)
+  
+  if(COMPILER_SUPPORTS_COROUTINES)
+    message(STATUS "✅ Compiler supports C++20 coroutines, enabling for folly")
+    set(FOLLY_CXX_FLAGS "-std=c++20 -fcoroutines")
+  else()
+    message(WARNING "⚠️  Compiler does not support C++20 coroutines, folly will be built without coroutine support")
+    set(FOLLY_CXX_FLAGS "-std=c++17")
+  endif()
+  
   execute_process(
     COMMAND ${CMAKE_COMMAND}
       -S ${folly_SOURCE_DIR}
@@ -655,6 +665,9 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
       -DCMAKE_INSTALL_PREFIX=${FOLLY_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${FOLLY_PREFIX_PATH}"
       -DCMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules
+      # 显式设置 C++ 标准和协程支持
+      -DCMAKE_CXX_STANDARD=20
+      "-DCMAKE_CXX_FLAGS=${FOLLY_CXX_FLAGS} -mavx2"
       "-DBOOST_ROOT=${BOOST_ROOT}"
       "-DBOOST_INCLUDEDIR=${BOOST_INCLUDEDIR}"
       "-DBOOST_LIBRARYDIR=${BOOST_LIBRARYDIR}"
@@ -702,6 +715,38 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   endif()
   
   message(STATUS "folly built and installed successfully")
+  
+  # ========================================================================
+  # 修复 folly 的链接配置：添加 liburing 到 INTERFACE_LINK_LIBRARIES
+  # ========================================================================
+  # 问题：folly 编译时使用了 liburing，但没有将其导出给使用者
+  # 解决：手动修改 folly-targets.cmake，添加 uring 到链接库列表
+  
+  set(FOLLY_TARGETS_FILE "${FOLLY_INSTALL_DIR}/lib/cmake/folly/folly-targets.cmake")
+  if(EXISTS "${FOLLY_TARGETS_FILE}")
+    file(READ "${FOLLY_TARGETS_FILE}" FOLLY_TARGETS_CONTENT)
+    
+    # 查找 INTERFACE_LINK_LIBRARIES 属性
+    string(FIND "${FOLLY_TARGETS_CONTENT}" "INTERFACE_LINK_LIBRARIES" HAS_INTERFACE_LIBS)
+    
+    if(HAS_INTERFACE_LIBS GREATER -1)
+      # 在 INTERFACE_LINK_LIBRARIES 列表末尾添加 uring
+      # 使用正则表达式找到 INTERFACE_LINK_LIBRARIES 并在其值的末尾添加 uring
+      string(REGEX REPLACE 
+        "(INTERFACE_LINK_LIBRARIES[^\"]*\"[^\"]*)"
+        "\\1;uring"
+        FOLLY_TARGETS_CONTENT_MODIFIED
+        "${FOLLY_TARGETS_CONTENT}"
+      )
+      
+      file(WRITE "${FOLLY_TARGETS_FILE}" "${FOLLY_TARGETS_CONTENT_MODIFIED}")
+      message(STATUS "✅ Patched folly-targets.cmake to export liburing")
+    else()
+      message(WARNING "⚠️  Could not find INTERFACE_LINK_LIBRARIES in folly-targets.cmake")
+    endif()
+  else()
+    message(WARNING "⚠️  folly-targets.cmake not found at: ${FOLLY_TARGETS_FILE}")
+  endif()
 else()
   message(STATUS "folly already installed at ${FOLLY_INSTALL_DIR}")
 endif()
@@ -713,3 +758,4 @@ list(APPEND CMAKE_PREFIX_PATH ${FOLLY_INSTALL_DIR})
 # 1. folly 已经安装到 FOLLY_INSTALL_DIR
 # 2. 其他 Facebook 库会通过 CMAKE_PREFIX_PATH 自动找到它
 # 3. folly-config.cmake 在构建树中有路径问题，但在安装后是正确的
+

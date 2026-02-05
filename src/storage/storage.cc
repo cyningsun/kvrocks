@@ -47,6 +47,7 @@
 #include "rocksdb/options.h"
 #include "rocksdb/write_batch.h"
 #include "rocksdb_crc32c.h"
+#include "ssd_secondary_cache.h"
 #include "server/server.h"
 #include "storage/batch_indexer.h"
 #include "string_util.h"
@@ -304,11 +305,27 @@ Status Storage::Open(DBOpenMode mode) {
     }
   }
 
+  // Create SSD secondary cache if enabled (must be done before creating block cache)
+  if (config_->rocks_db.enable_ssd_secondary_cache) {
+    ssd_secondary_cache_ = NewSsdSecondaryCache(config_);
+    if (ssd_secondary_cache_) {
+      INFO("[storage] SSD secondary cache created successfully");
+    } else {
+      WARN("[storage] Failed to create SSD secondary cache, will use block cache only");
+    }
+  }
+
   if (config_->rocks_db.block_cache_type == BlockCacheType::kCacheTypeLRU) {
-    shared_block_cache_ = rocksdb::NewLRUCache(block_cache_size, kRocksdbLRUAutoAdjustShardBits,
-                                               kRocksdbCacheStrictCapacityLimit, kRocksdbLRUBlockCacheHighPriPoolRatio);
+    rocksdb::LRUCacheOptions lru_opts;
+    lru_opts.capacity = block_cache_size;
+    lru_opts.num_shard_bits = kRocksdbLRUAutoAdjustShardBits;
+    lru_opts.strict_capacity_limit = kRocksdbCacheStrictCapacityLimit;
+    lru_opts.high_pri_pool_ratio = kRocksdbLRUBlockCacheHighPriPoolRatio;
+    lru_opts.secondary_cache = ssd_secondary_cache_;
+    shared_block_cache_ = lru_opts.MakeSharedCache();
   } else {
     rocksdb::HyperClockCacheOptions hcc_cache_options(block_cache_size, kRockdbHCCAutoAdjustCharge);
+    hcc_cache_options.secondary_cache = ssd_secondary_cache_;
     shared_block_cache_ = hcc_cache_options.MakeSharedCache();
   }
 

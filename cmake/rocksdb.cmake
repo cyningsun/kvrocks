@@ -26,13 +26,29 @@ endif()
 include(cmake/utils.cmake)
 
 FetchContent_DeclareGitHubWithMirror(rocksdb
-  facebook/rocksdb v10.9.1
-  MD5=06a521bf5749f73d0da29844f9ae6fca
+  facebook/rocksdb v8.8.1
+  MD5=15cd02d457b35da07947113de5304270
 )
 
 FetchContent_GetProperties(jemalloc)
 FetchContent_GetProperties(snappy)
 FetchContent_GetProperties(tbb)
+
+# Get folly and its dependencies installation directories
+# Note: folly must be built before rocksdb when USE_COROUTINES is enabled
+set(FOLLY_INSTALL_DIR ${CMAKE_BINARY_DIR}/folly-install)
+set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install)
+set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
+set(GFLAGS_INSTALL_DIR ${CMAKE_BINARY_DIR}/gflags-install)
+set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/boost-install)
+
+# Add folly and its dependencies to CMAKE_PREFIX_PATH
+# so RocksDB can find them when USE_COROUTINES is enabled
+list(APPEND CMAKE_PREFIX_PATH ${FOLLY_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${FMT_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${GLOG_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${GFLAGS_INSTALL_DIR})
+list(APPEND CMAKE_PREFIX_PATH ${BOOST_INSTALL_DIR})
 
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
@@ -48,6 +64,8 @@ FetchContent_MakeAvailableWithArgs(rocksdb
   WITH_ZSTD=ON
   WITH_GFLAGS=OFF
   WITH_TBB=ON
+  WITH_LIBURING=ON
+  USE_FOLLY=ON
   USE_RTTI=ON
   ROCKSDB_BUILD_SHARED=OFF
   WITH_JEMALLOC=${COMPILE_WITH_JEMALLOC}
@@ -57,3 +75,4 @@ FetchContent_MakeAvailableWithArgs(rocksdb
 add_library(rocksdb_with_headers INTERFACE)
 target_include_directories(rocksdb_with_headers INTERFACE ${rocksdb_SOURCE_DIR}/include)
 target_link_libraries(rocksdb_with_headers INTERFACE rocksdb)
+

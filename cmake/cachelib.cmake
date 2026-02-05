@@ -136,7 +136,7 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
   set(cachelib_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/cachelib-build)
   
   # 构建 CMAKE_PREFIX_PATH（包括所有依赖）
-  set(CACHELIB_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FBTHRIFT_INSTALL_DIR};${FOLLY_FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${GOOGLETEST_INSTALL_DIR};${ZSTD_INSTALL_DIR}")
+  set(CACHELIB_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FBTHRIFT_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${GOOGLETEST_INSTALL_DIR};${ZSTD_INSTALL_DIR}")
   
   # 设置 libevent 和 zstd 的路径（它们已单独安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
@@ -150,6 +150,9 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
   message(STATUS "  ✅ zstd, libevent, sparsemap - available")
   message(STATUS "  ⚠️  NUMA, libaio - optional, will check at runtime")
   
+  # 配置 CacheLib
+  # 注意：folly 已经通过 folly.cmake 正确导出了 liburing
+  # CacheLib 通过 folly::folly 可以自动获得 uring 的链接
   execute_process(
     COMMAND ${CMAKE_COMMAND}
       -S ${cachelib_SOURCE_DIR}/cachelib
@@ -160,8 +163,9 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
       "-DCMAKE_PROGRAM_PATH=${FBTHRIFT_INSTALL_DIR}/bin"
       "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
       "-DCMAKE_INCLUDE_PATH=${ZSTD_INCLUDE_DIRS};${GOOGLETEST_INSTALL_DIR}/include;${sparsemap_SOURCE_DIR}/include"
-      "-DCMAKE_CXX_FLAGS=-I${GOOGLETEST_INSTALL_DIR}/include -I${sparsemap_SOURCE_DIR}/include"
-      "-DCMAKE_C_FLAGS=-I${GOOGLETEST_INSTALL_DIR}/include -I${sparsemap_SOURCE_DIR}/include"
+      # 强制使用 AVX2 指令集，与 folly 保持一致
+      "-DCMAKE_CXX_FLAGS=-std=c++20 -mavx2 -I${GOOGLETEST_INSTALL_DIR}/include -I${sparsemap_SOURCE_DIR}/include"
+      "-DCMAKE_C_FLAGS=-mavx2 -I${GOOGLETEST_INSTALL_DIR}/include -I${sparsemap_SOURCE_DIR}/include"
       "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
       "-DZSTD_ROOT=${ZSTD_INSTALL_DIR}"
@@ -180,6 +184,7 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
   endif()
   
   # 编译 CacheLib
+  # 现在可以编译完整的 CacheLib（包括 cachebench），因为 folly 已经正确导出了 uring
   execute_process(
     COMMAND ${CMAKE_COMMAND} --build ${cachelib_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
     RESULT_VARIABLE CACHELIB_BUILD_RESULT
