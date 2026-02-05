@@ -107,4 +107,3 @@ std::shared_ptr<rocksdb::SecondaryCache> NewSsdSecondaryCache(const Config* conf
 }
 
 }  // namespace engine
-

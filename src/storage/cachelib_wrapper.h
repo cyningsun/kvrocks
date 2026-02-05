@@ -154,4 +154,3 @@ class RocksCachelibWrapper : public rocksdb::SecondaryCache {
 extern std::unique_ptr<rocksdb::SecondaryCache> NewRocksCachelibWrapper(const RocksCachelibOptions& opts);
 
 }  // namespace engine
-
