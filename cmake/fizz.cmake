@@ -57,7 +57,6 @@ if(NOT EXISTS ${FIZZ_INSTALL_DIR}/lib/libfizz.a)
   
   # 设置环境变量以帮助 find_library 找到 zstd
   set(ENV{CMAKE_PREFIX_PATH} "${ZSTD_INSTALL_DIR}/lib")
-  set(AEGIS_INCLUDE_FLAGS "-I${fizz_SOURCE_DIR}/fizz/third-party/libsodium-aegis")
   
   execute_process(
     COMMAND ${CMAKE_COMMAND}
@@ -74,9 +73,9 @@ if(NOT EXISTS ${FIZZ_INSTALL_DIR}/lib/libfizz.a)
       "-DZSTD_INCLUDE_DIR=${ZSTD_INCLUDE_DIR}"
       "-DZSTD_LIBRARY=${ZSTD_LIBRARY}"
       "-DZSTD_LIBRARY_RELEASE=${ZSTD_LIBRARY}"
-      # 强制使用 AVX2 指令集，与 folly 保持一致
-      "-DCMAKE_CXX_FLAGS=-std=c++20 -mavx2 ${AEGIS_INCLUDE_FLAGS}"
-      "-DCMAKE_C_FLAGS=-mavx2 ${AEGIS_INCLUDE_FLAGS}"
+      # 使用统一的编译标志并添加 AEGIS include 路径
+      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS} -I${fizz_SOURCE_DIR}/fizz/third-party/libsodium-aegis"
+      "-DCMAKE_C_FLAGS=${CMAKE_C_FLAGS} -I${fizz_SOURCE_DIR}/fizz/third-party/libsodium-aegis"
       -DBUILD_SHARED_LIBS=OFF
       -DBUILD_TESTS=OFF
       -DBUILD_EXAMPLES=OFF

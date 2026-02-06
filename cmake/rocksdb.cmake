@@ -51,6 +51,8 @@ list(APPEND CMAKE_PREFIX_PATH ${GFLAGS_INSTALL_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${BOOST_INSTALL_DIR})
 
 FetchContent_MakeAvailableWithArgs(rocksdb
+  CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
+  CMAKE_C_FLAGS=${CMAKE_C_FLAGS}
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
   Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/modules # to locate SnappyConfig.cmake
   FAIL_ON_WARNINGS=OFF
@@ -69,7 +71,7 @@ FetchContent_MakeAvailableWithArgs(rocksdb
   USE_RTTI=ON
   ROCKSDB_BUILD_SHARED=OFF
   WITH_JEMALLOC=${COMPILE_WITH_JEMALLOC}
-  PORTABLE=${PORTABLE}
+  PORTABLE=1
 )
 
 add_library(rocksdb_with_headers INTERFACE)

@@ -68,8 +68,8 @@ if(NOT EXISTS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
       "-DZSTD_ROOT=${ZSTD_INSTALL_DIR}"
       "-DZSTD_INCLUDE_DIRS=${ZSTD_INCLUDE_DIRS}"
       "-DZSTD_LIBRARIES=${ZSTD_LIBRARIES}"
-      # 强制使用 AVX2 指令集，与 folly 保持一致
-      "-DCMAKE_CXX_FLAGS=-std=c++20 -mavx2"
+      # 使用统一的编译标志
+      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
       -DBUILD_SHARED_LIBS=OFF
       -DBUILD_TESTS=OFF
       -DBUILD_EXAMPLES=OFF

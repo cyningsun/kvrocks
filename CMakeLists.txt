@@ -72,6 +72,50 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# 检测 C++20 协程支持
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag("-fcoroutines" COMPILER_SUPPORTS_COROUTINES)
+
+if(COMPILER_SUPPORTS_COROUTINES)
+  message(STATUS "Compiler supports C++20 coroutines")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcoroutines")
+else()
+  message(WARNING "Compiler does not support C++20 coroutines")
+endif()
+
+# 架构特定优化
+include(CheckCCompilerFlag)
+
+# ARM64/AArch64 架构
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "arm64|aarch64|AARCH64")
+  CHECK_C_COMPILER_FLAG("-march=armv8-a+crc+crypto" HAS_ARMV8_CRC)
+  if(HAS_ARMV8_CRC)
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -march=armv8-a+crc+crypto -Wno-unused-function")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=armv8-a+crc+crypto -Wno-unused-function")
+    message(STATUS "Building for ARM64 with CRC and crypto extensions")
+  else()
+    message(STATUS "Building for ARM64 without specific instruction set flags")
+  endif()
+endif()
+
+# x86_64 架构
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|amd64|AMD64")
+  if(NOT PORTABLE)
+    # 非便携式构建：为当前 CPU 优化
+    if(MSVC)
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+      message(STATUS "Building for x86_64 with AVX2 (MSVC)")
+    else()
+      # 使用 -mavx2 而不是 -march=native，以更好地控制指令集
+      set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+      set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx2")
+      message(STATUS "Building for x86_64 with AVX2")
+    endif()
+  else()
+    message(STATUS "Building portable x86_64 binary without architecture-specific optimizations")
+  endif()
+endif()
+
 set(DEPS_FETCH_PROXY "" CACHE STRING
     "a template URL to proxy the traffic for fetching dependencies,
      e.g. with DEPS_FETCH_PROXY = https://some-proxy/,

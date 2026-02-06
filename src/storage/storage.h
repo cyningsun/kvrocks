@@ -405,9 +405,6 @@ class Storage {
   // SSD secondary cache (optional)
   std::shared_ptr<rocksdb::SecondaryCache> ssd_secondary_cache_;
 
-  // SSD secondary cache (optional)
-  std::shared_ptr<rocksdb::SecondaryCache> ssd_secondary_cache_;
-
   rocksdb::Status writeToDB(engine::Context &ctx, const rocksdb::WriteOptions &options, rocksdb::WriteBatch *updates);
   void recordKeyspaceStat(const rocksdb::ColumnFamilyHandle *column_family, const rocksdb::Status &s);
   Status applyWriteBatch(const rocksdb::WriteOptions &options, rocksdb::WriteBatch *batch);

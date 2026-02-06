@@ -645,18 +645,6 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
   set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
   
-  # 检查编译器是否支持 C++20 协程
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("-std=c++20 -fcoroutines" COMPILER_SUPPORTS_COROUTINES)
-  
-  if(COMPILER_SUPPORTS_COROUTINES)
-    message(STATUS "✅ Compiler supports C++20 coroutines, enabling for folly")
-    set(FOLLY_CXX_FLAGS "-std=c++20 -fcoroutines")
-  else()
-    message(WARNING "⚠️  Compiler does not support C++20 coroutines, folly will be built without coroutine support")
-    set(FOLLY_CXX_FLAGS "-std=c++17")
-  endif()
-  
   execute_process(
     COMMAND ${CMAKE_COMMAND}
       -S ${folly_SOURCE_DIR}
@@ -665,9 +653,8 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
       -DCMAKE_INSTALL_PREFIX=${FOLLY_INSTALL_DIR}
       "-DCMAKE_PREFIX_PATH=${FOLLY_PREFIX_PATH}"
       -DCMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules
-      # 显式设置 C++ 标准和协程支持
-      -DCMAKE_CXX_STANDARD=20
-      "-DCMAKE_CXX_FLAGS=${FOLLY_CXX_FLAGS} -mavx2"
+      # 使用统一的编译标志
+      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
       "-DBOOST_ROOT=${BOOST_ROOT}"
       "-DBOOST_INCLUDEDIR=${BOOST_INCLUDEDIR}"
       "-DBOOST_LIBRARYDIR=${BOOST_LIBRARYDIR}"

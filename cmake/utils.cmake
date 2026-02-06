@@ -20,9 +20,16 @@ include_guard()
 include(FetchContent)
 
 macro(parse_var arg key value)
-  string(REGEX REPLACE "^(.+)=(.+)$" "\\1;\\2" REGEX_RESULT ${arg})
-  list(GET REGEX_RESULT 0 ${key})
-  list(GET REGEX_RESULT 1 ${value})
+  # 找到第一个 = 的位置
+  string(FIND "${arg}" "=" equal_pos)
+  if(equal_pos EQUAL -1)
+    message(FATAL_ERROR "Invalid argument format: ${arg}. Expected KEY=VALUE")
+  endif()
+  
+  # 分割 key 和 value
+  string(SUBSTRING "${arg}" 0 ${equal_pos} ${key})
+  math(EXPR value_start "${equal_pos} + 1")
+  string(SUBSTRING "${arg}" ${value_start} -1 ${value})
 endmacro()
 
 function(FetchContent_MakeAvailableWithArgs dep)

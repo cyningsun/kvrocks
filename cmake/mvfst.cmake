@@ -68,8 +68,8 @@ if(NOT EXISTS ${MVFST_INSTALL_DIR}/lib/libmvfst_transport.a)
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
       "-DZSTD_INCLUDE_DIR=${ZSTD_INCLUDE_DIR}"
       "-DZSTD_LIBRARY_RELEASE=${ZSTD_LIBRARY}"
-      # 强制使用 AVX2 指令集，与 folly 保持一致
-      "-DCMAKE_CXX_FLAGS=-std=c++20 -mavx2"
+      # 使用统一的编译标志
+      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
       -DBUILD_SHARED_LIBS=OFF
       -DBUILD_TESTS=OFF
       -DBUILD_EXAMPLES=OFF
