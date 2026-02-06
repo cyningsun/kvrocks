@@ -22,7 +22,7 @@ include(cmake/utils.cmake)
 # 使用 spdlog 1.11.0 以兼容 fmt 9.1.0（folly 依赖）
 FetchContent_DeclareGitHubWithMirror(spdlog
   gabime/spdlog v1.11.0
-  MD5=287c6492c25044fd2da9947ab120b2bd
+  MD5=cd620e0f103737a122a3b6539bd0a57a
 )
 
 FetchContent_MakeAvailableWithArgs(spdlog

@@ -35,7 +35,7 @@ set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
 
 FetchContent_Declare(sparsemap
   URL https://github.com/Tessil/sparse-map/archive/refs/tags/v0.7.0.tar.gz
-  URL_HASH MD5=a361fa30bde607a09e3422670be9c82e
+  MD5=a361fa30bde607a09e3422670be9c82e
 )
 
 FetchContent_GetProperties(sparsemap)
@@ -186,7 +186,7 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
   # 编译 CacheLib
   # 现在可以编译完整的 CacheLib（包括 cachebench），因为 folly 已经正确导出了 uring
   execute_process(
-    COMMAND ${CMAKE_COMMAND} --build ${cachelib_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
+    COMMAND ${CMAKE_COMMAND} --buigld ${cachelib_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
     RESULT_VARIABLE CACHELIB_BUILD_RESULT
     OUTPUT_FILE ${CMAKE_BINARY_DIR}/cachelib_build.log
     ERROR_FILE ${CMAKE_BINARY_DIR}/cachelib_build_error.log

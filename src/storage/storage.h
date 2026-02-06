@@ -401,6 +401,9 @@ class Storage {
 
   // rocksdb used global block cache
   std::shared_ptr<rocksdb::Cache> shared_block_cache_;
+  
+  // SSD secondary cache (optional)
+  std::shared_ptr<rocksdb::SecondaryCache> ssd_secondary_cache_;
 
   // SSD secondary cache (optional)
   std::shared_ptr<rocksdb::SecondaryCache> ssd_secondary_cache_;
