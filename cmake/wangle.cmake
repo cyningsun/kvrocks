@@ -25,8 +25,8 @@ include(cmake/utils.cmake)
 # 依赖：folly, fizz, googletest
 # 注意：wangle 的 CMakeLists.txt 在 wangle/wangle 子目录中
 FetchContent_DeclareGitHubWithMirror(wangle
-  facebook/wangle v2024.02.19.00
-  MD5=7561a688d3512118afb1375bcdd1168e
+  facebook/wangle v2025.07.28.00
+  MD5=e4dc393e4a802fedf080fc1fb2dcf0ff
 )
 
 # 设置 wangle 的安装目录

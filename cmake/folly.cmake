@@ -28,10 +28,8 @@ include(cmake/utils.cmake)
 #   v2024.02.26.00 - 版本标签
 #   MD5=... - 下载文件的 MD5 校验和，用于验证下载完整性
 FetchContent_DeclareGitHubWithMirror(folly
-  facebook/folly v2024.02.26.00
-  MD5=5a766b94d88be5d006ae712107d00ab8
-  #facebook/folly v2024.12.16.00
-  #MD5=fb2761dd88e7566bc4d77a621235dfe3
+  facebook/folly v2025.07.28.00
+  MD5=67ab03f744c05e1be61ad8efe6834f16
 )
 
 # 获取已编译依赖的源码目录，用于传递给 folly
@@ -634,7 +632,7 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   # 配置 folly
   # 构建 CMAKE_PREFIX_PATH 字符串（用分号分隔）
   # 包含 LIBEVENT_INSTALL_DIR，让 folly 能找到已安装的 libevent
-  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FAST_FLOAT_INSTALL_DIR};${FMT_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
+  set(FOLLY_PREFIX_PATH "${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${FMT_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
   
   # 设置 Boost 的路径（让 folly 能找到 Boost）
   set(BOOST_ROOT ${BOOST_INSTALL_DIR})
@@ -663,6 +661,7 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
       "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
       "-DLIBEVENT_CORE_LIB=${LIBEVENT_LIB_DIR}/libevent_core.a"
       "-DLIBEVENT_PTHREADS_LIB=${LIBEVENT_LIB_DIR}/libevent_pthreads.a"
+      "-DFASTFLOAT_INCLUDE_DIR=${fast_float_SOURCE_DIR}/include"
       -DBUILD_SHARED_LIBS=OFF
       -DBUILD_TESTS=OFF
       -DBUILD_EXAMPLES=OFF
@@ -702,38 +701,6 @@ if(NOT EXISTS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
   endif()
   
   message(STATUS "folly built and installed successfully")
-  
-  # ========================================================================
-  # 修复 folly 的链接配置：添加 liburing 到 INTERFACE_LINK_LIBRARIES
-  # ========================================================================
-  # 问题：folly 编译时使用了 liburing，但没有将其导出给使用者
-  # 解决：手动修改 folly-targets.cmake，添加 uring 到链接库列表
-  
-  set(FOLLY_TARGETS_FILE "${FOLLY_INSTALL_DIR}/lib/cmake/folly/folly-targets.cmake")
-  if(EXISTS "${FOLLY_TARGETS_FILE}")
-    file(READ "${FOLLY_TARGETS_FILE}" FOLLY_TARGETS_CONTENT)
-    
-    # 查找 INTERFACE_LINK_LIBRARIES 属性
-    string(FIND "${FOLLY_TARGETS_CONTENT}" "INTERFACE_LINK_LIBRARIES" HAS_INTERFACE_LIBS)
-    
-    if(HAS_INTERFACE_LIBS GREATER -1)
-      # 在 INTERFACE_LINK_LIBRARIES 列表末尾添加 uring
-      # 使用正则表达式找到 INTERFACE_LINK_LIBRARIES 并在其值的末尾添加 uring
-      string(REGEX REPLACE 
-        "(INTERFACE_LINK_LIBRARIES[^\"]*\"[^\"]*)"
-        "\\1;uring"
-        FOLLY_TARGETS_CONTENT_MODIFIED
-        "${FOLLY_TARGETS_CONTENT}"
-      )
-      
-      file(WRITE "${FOLLY_TARGETS_FILE}" "${FOLLY_TARGETS_CONTENT_MODIFIED}")
-      message(STATUS "✅ Patched folly-targets.cmake to export liburing")
-    else()
-      message(WARNING "⚠️  Could not find INTERFACE_LINK_LIBRARIES in folly-targets.cmake")
-    endif()
-  else()
-    message(WARNING "⚠️  folly-targets.cmake not found at: ${FOLLY_TARGETS_FILE}")
-  endif()
 else()
   message(STATUS "folly already installed at ${FOLLY_INSTALL_DIR}")
 endif()

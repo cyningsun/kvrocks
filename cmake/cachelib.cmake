@@ -23,19 +23,35 @@ include(cmake/utils.cmake)
 
 # CacheLib - Facebook 的缓存库
 # 依赖：folly, fizz, wangle, mvfst, fbthrift, boost, gflags, glog, fmt, zstd, googletest, sparsemap
-FetchContent_Declare(cachelib
-  URL https://github.com/facebook/CacheLib/archive/refs/tags/v2024.02.26.00.tar.gz
+FetchContent_DeclareGitHubWithMirror(cachelib
+  facebook/CacheLib v2025.07.28.00
+  MD5=fa764a6e665cf5821c24b6df3d62027b
 )
+
+# ============================================================================
+# 步骤 0: 设置依赖库的安装目录
+# ============================================================================
+# 这些目录由其他 cmake 文件创建，这里只是引用
+set(FOLLY_INSTALL_DIR ${CMAKE_BINARY_DIR}/folly-install)
+set(FIZZ_INSTALL_DIR ${CMAKE_BINARY_DIR}/fizz-install)
+set(WANGLE_INSTALL_DIR ${CMAKE_BINARY_DIR}/wangle-install)
+set(MVFST_INSTALL_DIR ${CMAKE_BINARY_DIR}/mvfst-install)
+set(FBTHRIFT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fbthrift-install)
+set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install)
+set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/boost-install)
+set(GFLAGS_INSTALL_DIR ${CMAKE_BINARY_DIR}/gflags-install)
+set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
+set(DOUBLE_CONVERSION_INSTALL_DIR ${CMAKE_BINARY_DIR}/double-conversion-install)
+set(LIBEVENT_INSTALL_DIR ${CMAKE_BINARY_DIR}/libevent-install)
+set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
 
 # ============================================================================
 # 步骤 1: 获取 sparsemap（CacheLib 需要的 header-only 库）
 # ============================================================================
-# 注意：zstd 已在 folly.cmake 中编译和安装，使用 ${ZSTD_INSTALL_DIR}
-set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
 
-FetchContent_Declare(sparsemap
-  URL https://github.com/Tessil/sparse-map/archive/refs/tags/v0.7.0.tar.gz
-  URL_HASH MD5=a361fa30bde607a09e3422670be9c82e
+FetchContent_DeclareGitHubWithMirror(sparsemap
+  Tessil/sparse-map v0.7.0
+  MD5=5854aec510de6a8c020f25ef77896833
 )
 
 FetchContent_GetProperties(sparsemap)
@@ -135,8 +151,11 @@ if(NOT EXISTS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
   # 配置 CacheLib
   set(cachelib_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/cachelib-build)
   
-  # 构建 CMAKE_PREFIX_PATH（包括所有依赖）
-  set(CACHELIB_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FBTHRIFT_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${GOOGLETEST_INSTALL_DIR};${ZSTD_INSTALL_DIR}")
+  # 设置 xxhash 的安装目录（已在前面步骤 0 中定义，这里再次引用以确保）
+  set(XXHASH_INSTALL_DIR ${CMAKE_BINARY_DIR}/xxhash-install)
+  
+  # 构建 CMAKE_PREFIX_PATH（包括所有依赖，包括 xxhash）
+  set(CACHELIB_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FBTHRIFT_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${GOOGLETEST_INSTALL_DIR};${ZSTD_INSTALL_DIR};${XXHASH_INSTALL_DIR}")
   
   # 设置 libevent 和 zstd 的路径（它们已单独安装）
   set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")

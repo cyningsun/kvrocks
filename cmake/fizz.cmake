@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # fizz - Facebook 的 TLS 1.3 实现
 # 依赖：folly, libsodium, liboqs, zstd
 FetchContent_DeclareGitHubWithMirror(fizz
-  facebookincubator/fizz v2024.02.19.00
-  MD5=ac09a0c2ab96e2943991cf1d22075e15
+  facebookincubator/fizz v2025.07.28.00
+  MD5=e1ad09d50585ff9dec4b87ed3549a95c
 )
 
 # 设置 fizz 的安装目录

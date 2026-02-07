@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # fbthrift - Facebook 的 Thrift RPC 框架
 # 依赖：folly, fizz, wangle, mvfst, xxhash, zstd, fmt, libsodium
 FetchContent_DeclareGitHubWithMirror(fbthrift
-  facebook/fbthrift v2024.02.19.00
-  MD5=8212308c85fde7a2fff109f32a9b3f69
+  facebook/fbthrift v2025.07.28.00
+  MD5=9a3c76fdc4fd61d7ac57d3c5e1c56d89
 )
 
 # 设置 fbthrift 的安装目录
@@ -43,8 +43,11 @@ if(NOT EXISTS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
   # 配置 fbthrift
   set(fbthrift_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fbthrift-build)
   
-  # 构建 CMAKE_PREFIX_PATH（包括所有依赖）
-  set(FBTHRIFT_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
+  # 设置 xxhash 的安装目录
+  set(XXHASH_INSTALL_DIR ${CMAKE_BINARY_DIR}/xxhash-install)
+  
+  # 构建 CMAKE_PREFIX_PATH（包括所有依赖，包括 xxhash）
+  set(FBTHRIFT_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${LIBEVENT_INSTALL_DIR};${XXHASH_INSTALL_DIR}")
   
   # 设置 libevent 和 zstd 的路径
   # libevent 使用已安装的版本（由 folly.cmake 编译和安装）

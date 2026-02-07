@@ -41,6 +41,7 @@ set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install)
 set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
 set(GFLAGS_INSTALL_DIR ${CMAKE_BINARY_DIR}/gflags-install)
 set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/boost-install)
+set(LIBURING_INSTALL_DIR ${CMAKE_BINARY_DIR}/liburing-install)
 
 # Add folly and its dependencies to CMAKE_PREFIX_PATH
 # so RocksDB can find them when USE_COROUTINES is enabled
@@ -49,6 +50,9 @@ list(APPEND CMAKE_PREFIX_PATH ${FMT_INSTALL_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${GLOG_INSTALL_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${GFLAGS_INSTALL_DIR})
 list(APPEND CMAKE_PREFIX_PATH ${BOOST_INSTALL_DIR})
+# Add liburing to CMAKE_PREFIX_PATH so RocksDB can find it
+# Note: This is added AFTER folly is configured, so folly won't see it
+list(APPEND CMAKE_PREFIX_PATH ${LIBURING_INSTALL_DIR})
 
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}

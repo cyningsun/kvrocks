@@ -24,8 +24,8 @@ include(cmake/utils.cmake)
 # mvfst - Facebook 的 QUIC 传输协议实现
 # 依赖：folly, fizz, googletest
 FetchContent_DeclareGitHubWithMirror(mvfst
-  facebook/mvfst v2024.02.19.00
-  MD5=f62a8b28fa3febdd7dc498de10b39d87
+  facebook/mvfst v2025.07.28.00
+  MD5=1f4aa28d59b68f620ebdf38a9680f737
 )
 
 # 设置 mvfst 的安装目录
