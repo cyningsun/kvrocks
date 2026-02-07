@@ -34,31 +34,24 @@ FetchContent_GetProperties(jemalloc)
 FetchContent_GetProperties(snappy)
 FetchContent_GetProperties(tbb)
 
-# Get folly and its dependencies installation directories
-# Note: folly must be built before rocksdb when USE_COROUTINES is enabled
-set(FOLLY_INSTALL_DIR ${CMAKE_BINARY_DIR}/folly-install)
-set(FMT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fmt-install)
-set(GLOG_INSTALL_DIR ${CMAKE_BINARY_DIR}/glog-install)
-set(GFLAGS_INSTALL_DIR ${CMAKE_BINARY_DIR}/gflags-install)
-set(BOOST_INSTALL_DIR ${CMAKE_BINARY_DIR}/boost-install)
-set(LIBURING_INSTALL_DIR ${CMAKE_BINARY_DIR}/liburing-install)
+# Set CONFIG-mode bridge dirs so RocksDB's find_package(folly) finds
+# our add_subdirectory targets via bridge config files
+set(folly_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/folly" CACHE PATH "" FORCE)
+set(fmt_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/fmt" CACHE PATH "" FORCE)
 
-# Add folly and its dependencies to CMAKE_PREFIX_PATH
-# so RocksDB can find them when USE_COROUTINES is enabled
-list(APPEND CMAKE_PREFIX_PATH ${FOLLY_INSTALL_DIR})
-list(APPEND CMAKE_PREFIX_PATH ${FMT_INSTALL_DIR})
-list(APPEND CMAKE_PREFIX_PATH ${GLOG_INSTALL_DIR})
-list(APPEND CMAKE_PREFIX_PATH ${GFLAGS_INSTALL_DIR})
-list(APPEND CMAKE_PREFIX_PATH ${BOOST_INSTALL_DIR})
-# Add liburing to CMAKE_PREFIX_PATH so RocksDB can find it
-# Note: This is added AFTER folly is configured, so folly won't see it
+# LIBURING_INSTALL_DIR is already defined by cmake/liburing.cmake (included before us)
+# Add it to CMAKE_PREFIX_PATH so RocksDB can find liburing
 list(APPEND CMAKE_PREFIX_PATH ${LIBURING_INSTALL_DIR})
+
+# Skip install rules to avoid export validation errors
+# (RocksDB's install(EXPORT) includes zstd more than once)
+set(CMAKE_SKIP_INSTALL_RULES ON)
 
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
   CMAKE_C_FLAGS=${CMAKE_C_FLAGS}
   CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
-  Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/modules # to locate SnappyConfig.cmake
+  Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/configs/snappy
   FAIL_ON_WARNINGS=OFF
   WITH_TESTS=OFF
   WITH_BENCHMARK_TOOLS=OFF
@@ -78,7 +71,15 @@ FetchContent_MakeAvailableWithArgs(rocksdb
   PORTABLE=1
 )
 
+set(CMAKE_SKIP_INSTALL_RULES OFF)
+
 add_library(rocksdb_with_headers INTERFACE)
 target_include_directories(rocksdb_with_headers INTERFACE ${rocksdb_SOURCE_DIR}/include)
-target_link_libraries(rocksdb_with_headers INTERFACE rocksdb)
+target_link_libraries(rocksdb_with_headers INTERFACE
+  rocksdb
+  # RocksDB declares these as PRIVATE (CMakeLists.txt line 1108);
+  # static linking requires consumers to also link them.
+  # Encapsulate here so the top-level CMakeLists.txt doesn't need to repeat them.
+  snappy lz4 zstd zlib_with_headers
+)
 

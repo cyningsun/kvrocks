@@ -44,7 +44,12 @@ if(NOT lua_POPULATED)
   file(COPY ${LUA_PUBLIC_HEADERS} DESTINATION ${lua_BINARY_DIR}/include)
 endif()
 
+add_library(lua_static STATIC IMPORTED GLOBAL)
+set_target_properties(lua_static PROPERTIES
+  IMPORTED_LOCATION "${lua_SOURCE_DIR}/src/liblua.a"
+)
+add_dependencies(lua_static make_lua)
+
 add_library(lua INTERFACE)
 target_include_directories(lua INTERFACE ${lua_BINARY_DIR}/include)
-target_link_libraries(lua INTERFACE ${lua_SOURCE_DIR}/src/liblua.a)
-add_dependencies(lua make_lua)
+target_link_libraries(lua INTERFACE lua_static)

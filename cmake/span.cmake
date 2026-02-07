@@ -25,3 +25,7 @@ FetchContent_DeclareGitHubWithMirror(span
 )
 
 FetchContent_MakeAvailableWithArgs(span)
+
+# Configure span-lite to use std::span when available, fall back to nonstd::span.
+# This INTERFACE definition propagates to all consumers of the span-lite target.
+target_compile_definitions(span-lite INTERFACE span_CONFIG_SELECT_SPAN=1)

@@ -36,3 +36,20 @@ FetchContent_MakeAvailableWithArgs(cpptrace
   ${CPPTRACE_BACKEND_OPTION}
   CPPTRACE_DISABLE_CXX_20_MODULES=ON
 )
+
+# Wrap Backtrace find results as an IMPORTED target for modern CMake usage.
+# Backtrace_LIBRARY and Backtrace_INCLUDE_DIR are set by CMake's built-in
+# FindBacktrace module; wrap them so consumers use a target, not variables.
+if(NOT TARGET Backtrace::backtrace)
+  add_library(Backtrace::backtrace INTERFACE IMPORTED GLOBAL)
+  if(Backtrace_LIBRARY)
+    set_target_properties(Backtrace::backtrace PROPERTIES
+      INTERFACE_LINK_LIBRARIES "${Backtrace_LIBRARY}"
+    )
+  endif()
+  if(Backtrace_INCLUDE_DIR)
+    set_target_properties(Backtrace::backtrace PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${Backtrace_INCLUDE_DIR}"
+    )
+  endif()
+endif()

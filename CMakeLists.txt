@@ -183,7 +183,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # GLIBC < 2.17 should explicitly specify the real-time library when using clock_*
 find_library(REALTIME_LIB rt)
 if (REALTIME_LIB)
-    list(APPEND EXTERNAL_LIBS PRIVATE rt)
+    list(APPEND EXTERNAL_LIBS ${REALTIME_LIB})
 endif()
 
 if (CMAKE_HOST_APPLE)
@@ -193,7 +193,7 @@ endif ()
 
 if(NOT DISABLE_JEMALLOC)
     include(cmake/jemalloc.cmake)
-    list(APPEND EXTERNAL_LIBS PRIVATE jemalloc)
+    list(APPEND EXTERNAL_LIBS jemalloc)
 endif()
 
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "do not build shared libs by default")
@@ -244,7 +244,10 @@ include(cmake/boost.cmake)
 include(cmake/liburing.cmake)
 include(cmake/folly.cmake)
 include(cmake/rocksdb.cmake)
-include(cmake/liboqs.cmake)
+# NOTE: liboqs is disabled because its internal 'common' target name collides
+# with fbthrift's 'common' target. fizz works fine without liboqs (it's optional
+# for post-quantum crypto support).
+# include(cmake/liboqs.cmake)
 include(cmake/fizz.cmake)
 include(cmake/wangle.cmake)
 include(cmake/mvfst.cmake)
@@ -259,71 +262,50 @@ endif()
 
 find_package(Threads REQUIRED)
 
-list(APPEND EXTERNAL_LIBS snappy)
+# === Libraries directly used by kvrocks source code ===
+# Each cmake/*.cmake exports a self-contained target with proper PUBLIC/INTERFACE
+# propagation. Only list libraries whose API is directly #include'd in src/.
+
+# Storage engine (encapsulates snappy/lz4/zstd/zlib as INTERFACE deps)
 list(APPEND EXTERNAL_LIBS rocksdb_with_headers)
+
+# Networking
 list(APPEND EXTERNAL_LIBS event_with_headers)
-list(APPEND EXTERNAL_LIBS lz4)
-list(APPEND EXTERNAL_LIBS zstd)
-list(APPEND EXTERNAL_LIBS zlib_with_headers)
+
+# Formatting & logging
 list(APPEND EXTERNAL_LIBS fmt)
 list(APPEND EXTERNAL_LIBS spdlog)
-if (ENABLE_LUAJIT)
+
+# Scripting engine
+if(ENABLE_LUAJIT)
     list(APPEND EXTERNAL_LIBS luajit)
 else()
     list(APPEND EXTERNAL_LIBS lua)
 endif()
-if (ENABLE_OPENSSL)
+
+# TLS (optional)
+if(ENABLE_OPENSSL)
     list(APPEND EXTERNAL_LIBS OpenSSL::SSL)
 endif()
+
+# Concurrency
 list(APPEND EXTERNAL_LIBS tbb)
+
+# Utility / header-only libraries
 list(APPEND EXTERNAL_LIBS jsoncons)
 list(APPEND EXTERNAL_LIBS Threads::Threads)
-list(APPEND EXTERNAL_LIBS ${Backtrace_LIBRARY})
+list(APPEND EXTERNAL_LIBS Backtrace::backtrace)
 list(APPEND EXTERNAL_LIBS xxhash)
 list(APPEND EXTERNAL_LIBS span-lite)
 list(APPEND EXTERNAL_LIBS tsl_hat_trie)
 list(APPEND EXTERNAL_LIBS pegtl)
 list(APPEND EXTERNAL_LIBS range-v3)
 list(APPEND EXTERNAL_LIBS cpptrace::cpptrace)
-# CacheLib and Folly libraries (for SSD secondary cache)
-# Note: cachelib_rocksdb_secondary_cache moved to src/storage/cachelib_wrapper.cc
-list(APPEND EXTERNAL_LIBS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_allocator.a)
-list(APPEND EXTERNAL_LIBS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_navy.a)
-list(APPEND EXTERNAL_LIBS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_common.a)
-list(APPEND EXTERNAL_LIBS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_shm.a)
-list(APPEND EXTERNAL_LIBS ${CACHELIB_INSTALL_DIR}/lib/libcachelib_datatype.a)
-# GoogleTest libraries (required by CacheLib Mock code)
-set(GOOGLETEST_INSTALL_DIR ${CMAKE_BINARY_DIR}/googletest-install)
-list(APPEND EXTERNAL_LIBS ${GOOGLETEST_INSTALL_DIR}/lib/libgmock.a)
-list(APPEND EXTERNAL_LIBS ${GOOGLETEST_INSTALL_DIR}/lib/libgtest.a)
-list(APPEND EXTERNAL_LIBS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
-list(APPEND EXTERNAL_LIBS ${GLOG_INSTALL_DIR}/lib/libglog.a)
-list(APPEND EXTERNAL_LIBS ${GFLAGS_INSTALL_DIR}/lib/libgflags.a)
-list(APPEND EXTERNAL_LIBS ${DOUBLE_CONVERSION_INSTALL_DIR}/lib/libdouble-conversion.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_context.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_filesystem.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_program_options.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_regex.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_system.a)
-list(APPEND EXTERNAL_LIBS ${BOOST_INSTALL_DIR}/lib/libboost_thread.a)
-list(APPEND EXTERNAL_LIBS ${LIBEVENT_INSTALL_DIR}/lib/libevent.a)
-list(APPEND EXTERNAL_LIBS dl)
-list(APPEND EXTERNAL_LIBS rt)
-list(APPEND EXTERNAL_LIBS numa)
-# fbthrift libraries (required by CacheLib serialization)
-list(APPEND EXTERNAL_LIBS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
-list(APPEND EXTERNAL_LIBS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftprotocol.a)
-list(APPEND EXTERNAL_LIBS ${FBTHRIFT_INSTALL_DIR}/lib/libthrift-core.a)
-# System libraries required by folly/glog
-list(APPEND EXTERNAL_LIBS aio)
-list(APPEND EXTERNAL_LIBS unwind)
-list(APPEND EXTERNAL_LIBS iberty)
-# liburing: RocksDB needs it, use our custom-built version
-set(LIBURING_INSTALL_DIR ${CMAKE_BINARY_DIR}/liburing-install)
-list(APPEND EXTERNAL_LIBS ${LIBURING_INSTALL_DIR}/lib/liburing.a)
-list(APPEND EXTERNAL_LIBS ${FOLLY_INSTALL_DIR}/lib/libfolly.a)
-list(APPEND EXTERNAL_LIBS ${GLOG_INSTALL_DIR}/lib/libglog.a)
-list(APPEND EXTERNAL_LIBS ${GFLAGS_INSTALL_DIR}/lib/libgflags_nothreads.a)
+
+# SSD cache (encapsulates cachelib sub-targets + gtest/gmock workaround)
+# Transitively provides: folly, fbthrift, glog, gflags, double-conversion,
+# Boost::*, dl, aio, liburing, numa via PUBLIC linkage chains.
+list(APPEND EXTERNAL_LIBS cachelib_all)
 
 # Add git sha to version.h
 find_package(Git REQUIRED)
@@ -360,35 +342,21 @@ list(FILTER KVROCKS_SRCS EXCLUDE REGEX src/cli/main.cc)
 
 add_library(kvrocks_objs OBJECT ${KVROCKS_SRCS})
 
-target_include_directories(kvrocks_objs PUBLIC 
-    src 
-    src/common 
-    src/vendor 
-    ${PROJECT_BINARY_DIR} 
-    ${Backtrace_INCLUDE_DIR}
-    ${CACHELIB_SOURCE_DIR}
-    ${CACHELIB_INSTALL_DIR}/include
-    ${FOLLY_INSTALL_DIR}/include
-    ${FIZZ_INSTALL_DIR}/include
-    ${WANGLE_INSTALL_DIR}/include
-    ${MVFST_INSTALL_DIR}/include
-    ${FBTHRIFT_INSTALL_DIR}/include
-    ${BOOST_INSTALL_DIR}/include
-    ${GFLAGS_INSTALL_DIR}/include
-    ${GLOG_INSTALL_DIR}/include
-    ${DOUBLE_CONVERSION_INSTALL_DIR}/include
-    ${FOLLY_FMT_INSTALL_DIR}/include
-    ${GOOGLETEST_INSTALL_DIR}/include
-    ${ZSTD_INSTALL_DIR}/include
-    ${LIBEVENT_INSTALL_DIR}/include
-    ${SPARSEMAP_INCLUDE_DIR}
+target_include_directories(kvrocks_objs PUBLIC
+    src
+    src/common
+    src/vendor
+    ${PROJECT_BINARY_DIR}
 )
+# Backtrace include directory is now propagated via the Backtrace::backtrace target.
+# Note: All external library include directories are now automatically
+# propagated through IMPORTED targets and target_link_libraries.
 
 target_compile_features(kvrocks_objs PUBLIC cxx_std_17)
 target_compile_options(kvrocks_objs PUBLIC -Wall -Wpedantic -Wsign-compare -Wreturn-type -fno-omit-frame-pointer)
 target_compile_options(kvrocks_objs PUBLIC -Werror=unused-parameter)
 target_compile_options(kvrocks_objs PUBLIC -Werror=unused-result)
-target_compile_definitions(kvrocks_objs PUBLIC span_CONFIG_SELECT_SPAN=1)
+# span_CONFIG_SELECT_SPAN is now set as INTERFACE on span-lite target (cmake/span.cmake)
 
 # disable unused-variable check on GCC < 8 due to the structure bindings
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?format=multiple&id=81767
@@ -403,7 +371,6 @@ if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif((CMAKE_CXX_COMPILER_ID STREQUAL "Clang") OR (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang"))
     target_compile_options(kvrocks_objs PUBLIC -Wno-gnu-statement-expression)
 endif()
-target_link_libraries(kvrocks_objs PUBLIC -fno-omit-frame-pointer)
 target_link_libraries(kvrocks_objs PUBLIC ${EXTERNAL_LIBS})
 target_compile_definitions(kvrocks_objs PUBLIC KVROCKS_STORAGE_ENGINE=RocksDB)
 if(ENABLE_OPENSSL)
@@ -426,9 +393,6 @@ if(ENABLE_LTO)
 
     if(ipo_result)
         set_property(TARGET kvrocks_objs PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
-        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-            target_link_libraries(kvrocks_objs PUBLIC "-fuse-ld=lld")
-        endif()
     else()
         message(WARNING "LTO is not supported: ${ipo_output}")
     endif()
@@ -436,18 +400,25 @@ endif()
 
 # kvrocks main target
 add_executable(kvrocks src/cli/main.cc)
-target_link_libraries(kvrocks PRIVATE kvrocks_objs ${EXTERNAL_LIBS})
+target_link_libraries(kvrocks PRIVATE kvrocks_objs)
+target_link_options(kvrocks PRIVATE -fno-omit-frame-pointer)
+if(ENABLE_LTO AND ipo_result AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_link_options(kvrocks PRIVATE "-fuse-ld=lld")
+endif()
 
 # kvrocks2redis sync tool
 file(GLOB KVROCKS2REDIS_SRCS utils/kvrocks2redis/*.cc)
 add_executable(kvrocks2redis ${KVROCKS2REDIS_SRCS})
-
-target_link_libraries(kvrocks2redis PRIVATE kvrocks_objs ${EXTERNAL_LIBS})
+target_link_libraries(kvrocks2redis PRIVATE kvrocks_objs)
+target_link_options(kvrocks2redis PRIVATE -fno-omit-frame-pointer)
+if(ENABLE_LTO AND ipo_result AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_link_options(kvrocks2redis PRIVATE "-fuse-ld=lld")
+endif()
 
 # kvrocks unit tests
 file(GLOB_RECURSE TESTS_SRCS tests/cppunit/*.cc)
 add_executable(unittest ${TESTS_SRCS})
 target_include_directories(unittest PRIVATE tests/cppunit)
-
-target_link_libraries(unittest PRIVATE kvrocks_objs gtest_main gmock ${EXTERNAL_LIBS})
+target_link_libraries(unittest PRIVATE kvrocks_objs gtest_main gmock)
+target_link_options(unittest PRIVATE -fno-omit-frame-pointer)
 

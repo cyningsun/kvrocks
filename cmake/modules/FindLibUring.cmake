@@ -15,22 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# Bridge FindGflags: maps gflags add_subdirectory target to expected variables.
-# This is used by snappy and other consumers that use find_package(Gflags).
-# For FB stack libraries, the pre-set cache variables (LIBGFLAGS_*) and
-# fbcode_builder's FindGflags.cmake handle gflags discovery.
-
-if(TARGET gflags)
-  set(GFLAGS_FOUND TRUE)
-  set(Gflags_FOUND TRUE)
-  set(gflags_FOUND TRUE)
-  set(LIBGFLAGS_FOUND TRUE)
-  FetchContent_GetProperties(gflags)
-  set(LIBGFLAGS_INCLUDE_DIR "${gflags_BINARY_DIR}/include")
-  set(LIBGFLAGS_LIBRARY gflags)
-  set(gflags_LIBRARIES gflags)
-  set(gflags_INCLUDE_DIR "${gflags_BINARY_DIR}/include")
-else()
-  set(GFLAGS_FOUND FALSE)
-  set(Gflags_FOUND FALSE)
-endif()
+# Bridge: provide liburing to folly and other FB libraries.
+# LIBURING_INSTALL_DIR is set by cmake/liburing.cmake.
+# liburing::liburing IMPORTED target (created in liburing.cmake) carries
+# INTERFACE_INCLUDE_DIRECTORIES, so no need to set LIBURING_INCLUDE_DIR here.
+set(LIBURING_FOUND TRUE)
+set(LibUring_FOUND TRUE)
+set(LIBURING_LIBRARY "${LIBURING_INSTALL_DIR}/lib/liburing.a")
+set(LIBURING_LIBRARIES liburing::liburing)

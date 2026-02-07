@@ -41,7 +41,8 @@ FetchContent_MakeAvailableWithArgs(libevent
 )
 
 add_library(event_with_headers INTERFACE)
-target_include_directories(event_with_headers INTERFACE ${libevent_SOURCE_DIR}/include ${libevent_BINARY_DIR}/include)
+# Include directories are already propagated by the 'event' target via PUBLIC
+# target_include_directories (see libevent's AddEventLibrary.cmake).
 target_link_libraries(event_with_headers INTERFACE event event_pthreads)
 if(ENABLE_OPENSSL)
   target_link_libraries(event_with_headers INTERFACE event_openssl)

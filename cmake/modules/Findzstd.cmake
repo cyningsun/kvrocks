@@ -17,9 +17,11 @@
 
 # used for `find_package(zstd)` mechanism in rocksdb
 
-if(zstd_SOURCE_DIR)
-  message(STATUS "Found zstd in ${zstd_SOURCE_DIR}")
+if(TARGET zstd)
+  message(STATUS "Found zstd (via FetchContent)")
 
-  add_library(zstd::zstd ALIAS zstd) # rocksdb use it
-  install(TARGETS zstd EXPORT RocksDBTargets) # export for install(...)
+  if(NOT TARGET zstd::zstd)
+    add_library(zstd::zstd ALIAS zstd) # rocksdb use it
+  endif()
+  install(TARGETS zstd libzstd libzstd_static EXPORT RocksDBTargets) # export for install(...)
 endif()

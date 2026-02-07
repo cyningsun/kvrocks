@@ -17,9 +17,11 @@
 
 # used for `find_package(lz4)` mechanism in rocksdb
 
-if(lz4_SOURCE_DIR)
-  message(STATUS "Found lz4 in ${lz4_SOURCE_DIR}")
+if(TARGET lz4)
+  message(STATUS "Found lz4 (via FetchContent)")
 
-  add_library(lz4::lz4 ALIAS lz4) # rocksdb use it
-  install(TARGETS lz4 EXPORT RocksDBTargets) # export for install(...)
+  if(NOT TARGET lz4::lz4)
+    add_library(lz4::lz4 ALIAS lz4) # rocksdb use it
+  endif()
+  install(TARGETS lz4 lz4_static EXPORT RocksDBTargets) # export for install(...)
 endif()

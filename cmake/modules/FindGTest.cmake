@@ -15,6 +15,27 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# used for `find_package(GTest)` mechanism in snappy
+# Bridge FindGTest: maps googletest add_subdirectory targets to expected variables.
+# Used by snappy (to disable tests) and CacheLib (to find gtest).
 
-set(GTEST_FOUND FALSE)
+if(TARGET gtest)
+  set(GTEST_FOUND TRUE)
+  set(GTest_FOUND TRUE)
+  set(GTEST_LIBRARIES gtest)
+  set(GTEST_BOTH_LIBRARIES "gtest;gtest_main")
+  set(GTEST_MAIN_LIBRARY gtest_main)
+
+  # Include directories are propagated automatically via the gtest target
+  # (googletest has PUBLIC target_include_directories). No need to set GTEST_INCLUDE_DIR.
+
+  # Create GTest::gtest and GTest::gtest_main aliases if not present
+  if(NOT TARGET GTest::gtest)
+    add_library(GTest::gtest ALIAS gtest)
+  endif()
+  if(NOT TARGET GTest::gtest_main)
+    add_library(GTest::gtest_main ALIAS gtest_main)
+  endif()
+else()
+  set(GTEST_FOUND FALSE)
+  set(GTest_FOUND FALSE)
+endif()

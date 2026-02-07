@@ -57,8 +57,13 @@ endif()
 
 find_package(Threads REQUIRED)
 
+add_library(jemalloc_static STATIC IMPORTED GLOBAL)
+set_target_properties(jemalloc_static PROPERTIES
+  IMPORTED_LOCATION "${jemalloc_BINARY_DIR}/lib/libjemalloc.a"
+)
+add_dependencies(jemalloc_static make_jemalloc)
+
 add_library(jemalloc INTERFACE)
 target_include_directories(jemalloc INTERFACE $<BUILD_INTERFACE:${jemalloc_BINARY_DIR}/include>)
-target_link_libraries(jemalloc INTERFACE $<BUILD_INTERFACE:${jemalloc_BINARY_DIR}/lib/libjemalloc.a> Threads::Threads)
+target_link_libraries(jemalloc INTERFACE jemalloc_static Threads::Threads)
 target_compile_definitions(jemalloc INTERFACE ENABLE_JEMALLOC)
-add_dependencies(jemalloc make_jemalloc)

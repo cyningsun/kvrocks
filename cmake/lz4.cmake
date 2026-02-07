@@ -27,19 +27,9 @@ FetchContent_DeclareGitHubWithMirror(lz4
 FetchContent_GetProperties(lz4)
 if(NOT lz4_POPULATED)
   FetchContent_Populate(lz4)
-
-  if((CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang") OR
-   (CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"))
-    set(APPLE_FLAG "CFLAGS=-isysroot ${CMAKE_OSX_SYSROOT}")
-  endif()
-  
-  add_custom_target(make_lz4 COMMAND ${MAKE_COMMAND} CC=${CMAKE_C_COMPILER} ${NINJA_MAKE_JOBS_FLAG} ${APPLE_FLAG} liblz4.a
-    WORKING_DIRECTORY ${lz4_SOURCE_DIR}/lib
-    BYPRODUCTS ${lz4_SOURCE_DIR}/lib/liblz4.a
-  )
+  set(LZ4_BUILD_CLI OFF CACHE BOOL "" FORCE)
+  add_subdirectory(${lz4_SOURCE_DIR}/build/cmake ${lz4_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
-add_library(lz4 INTERFACE)
-target_include_directories(lz4 INTERFACE $<BUILD_INTERFACE:${lz4_SOURCE_DIR}/lib>)
-target_link_libraries(lz4 INTERFACE $<BUILD_INTERFACE:${lz4_SOURCE_DIR}/lib/liblz4.a>)
-add_dependencies(lz4 make_lz4)
+# lz4's CMake creates unified 'lz4' INTERFACE target linking to lz4_static
+# (when BUILD_SHARED_LIBS=OFF, which is our default)

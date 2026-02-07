@@ -50,7 +50,24 @@ FetchContent_Declare(boost
 #   chrono - 时间库（thread 的依赖）
 #   date_time - 日期时间库（thread 的依赖）
 #   atomic - 原子操作库（thread 的依赖）
-set(BOOST_INCLUDE_LIBRARIES context filesystem program_options regex system thread chrono date_time atomic CACHE STRING "Boost libraries to build")
+# Include all Boost components needed by kvrocks and its FB stack dependencies.
+# Compiled libraries:
+#   context, filesystem, program_options, regex, system, thread - folly/cachelib
+#   chrono, date_time, atomic - thread dependencies
+#   random, iostreams - mvfst/cachelib
+# Header-only libraries (needed for include paths in modular Boost build):
+#   algorithm, container, core, crc, functional, function_types,
+#   interprocess, intrusive, iterator, lexical_cast, mp11, mpl,
+#   multi_index, preprocessor, range, smart_ptr, sort, uuid, variant,
+#   conversion (polymorphic_cast), utility (operators)
+set(BOOST_INCLUDE_LIBRARIES
+  context filesystem program_options regex system thread
+  chrono date_time atomic random iostreams
+  algorithm container core crc functional function_types
+  interprocess intrusive iterator lexical_cast mp11 mpl
+  multi_index preprocessor range smart_ptr sort uuid variant
+  conversion utility
+  CACHE STRING "Boost libraries to build")
 
 # 禁用 Boost 的测试构建，加快编译速度
 set(BUILD_TESTING OFF CACHE BOOL "Build Boost tests")
@@ -62,3 +79,24 @@ set(BOOST_ENABLE_CMAKE ON CACHE BOOL "Enable CMake build for Boost")
 # 注意：由于 BOOST_INCLUDE_LIBRARIES 是列表类型，不能通过参数传递
 # 所以在调用前使用 set() 设置变量
 FetchContent_MakeAvailableWithArgs(boost)
+
+# Boost's add_subdirectory creates individual per-library targets (Boost::algorithm,
+# Boost::multi_index, etc.) with their own include directories in libs/*/include/.
+# Many FB libraries reference Boost::boost expecting ALL Boost headers to be available.
+# Create a custom aggregate target that links to all needed Boost library targets.
+if(NOT TARGET Boost::boost)
+  add_library(boost_boost INTERFACE)
+  # Link to all included Boost library targets for their headers
+  foreach(_boost_lib IN LISTS BOOST_INCLUDE_LIBRARIES)
+    if(TARGET boost_${_boost_lib})
+      target_link_libraries(boost_boost INTERFACE boost_${_boost_lib})
+    elseif(TARGET Boost::${_boost_lib})
+      target_link_libraries(boost_boost INTERFACE Boost::${_boost_lib})
+    endif()
+  endforeach()
+  # Also link to boost_headers for any remaining headers
+  if(TARGET boost_headers)
+    target_link_libraries(boost_boost INTERFACE boost_headers)
+  endif()
+  add_library(Boost::boost ALIAS boost_boost)
+endif()

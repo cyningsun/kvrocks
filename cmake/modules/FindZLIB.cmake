@@ -20,9 +20,17 @@
 if(zlib_SOURCE_DIR)
   message(STATUS "Found zlib in ${zlib_SOURCE_DIR}")
 
-  add_library(zlib_with_headers INTERFACE) # rocksdb use it
-  target_include_directories(zlib_with_headers INTERFACE $<BUILD_INTERFACE:${zlib_SOURCE_DIR}> $<BUILD_INTERFACE:${zlib_BINARY_DIR}>)
-  target_link_libraries(zlib_with_headers INTERFACE zlib-ng)
-  add_library(ZLIB::ZLIB ALIAS zlib_with_headers)
-  install(TARGETS zlib-ng zlib_with_headers EXPORT RocksDBTargets) # export for install(...)
+  if(NOT TARGET zlib_with_headers)
+    add_library(zlib_with_headers INTERFACE) # rocksdb use it
+    target_include_directories(zlib_with_headers INTERFACE $<BUILD_INTERFACE:${zlib_SOURCE_DIR}> $<BUILD_INTERFACE:${zlib_BINARY_DIR}>)
+    target_link_libraries(zlib_with_headers INTERFACE zlib-ng)
+    install(TARGETS zlib-ng zlib_with_headers EXPORT RocksDBTargets) # export for install(...)
+  endif()
+  if(NOT TARGET ZLIB::ZLIB)
+    add_library(ZLIB::ZLIB ALIAS zlib_with_headers)
+  endif()
+
+  set(ZLIB_FOUND TRUE)
+  set(ZLIB_INCLUDE_DIRS "${zlib_SOURCE_DIR}" "${zlib_BINARY_DIR}")
+  set(ZLIB_LIBRARIES zlib_with_headers)
 endif()

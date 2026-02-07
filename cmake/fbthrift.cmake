@@ -15,105 +15,95 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# 防止重复包含此文件
 include_guard()
 
-# 引入项目的工具函数库
 include(cmake/utils.cmake)
 
-# fbthrift - Facebook 的 Thrift RPC 框架
-# 依赖：folly, fizz, wangle, mvfst, xxhash, zstd, fmt, libsodium
+# fbthrift - Facebook's Thrift RPC framework
+# Dependencies: folly, fizz, wangle, mvfst, xxhash, zstd, fmt
 FetchContent_DeclareGitHubWithMirror(fbthrift
-  facebook/fbthrift v2025.07.28.00
-  MD5=9a3c76fdc4fd61d7ac57d3c5e1c56d89
+  facebook/fbthrift v2024.06.24.00
+  MD5=46d3442711de92d6e7fc06a3f47e5c7a
 )
 
-# 设置 fbthrift 的安装目录
-set(FBTHRIFT_INSTALL_DIR ${CMAKE_BINARY_DIR}/fbthrift-install)
+# Set CONFIG-mode bridge dirs
+set(folly_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/folly" CACHE PATH "" FORCE)
+set(fizz_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/fizz" CACHE PATH "" FORCE)
+set(wangle_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/wangle" CACHE PATH "" FORCE)
+set(mvfst_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/mvfst" CACHE PATH "" FORCE)
+set(fmt_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/fmt" CACHE PATH "" FORCE)
 
-if(NOT EXISTS ${FBTHRIFT_INSTALL_DIR}/lib/libthriftcpp2.a)
-  message(STATUS "Building and installing fbthrift (this may take a while)...")
-  
-  # 获取 fbthrift 源码
-  FetchContent_GetProperties(fbthrift)
-  if(NOT fbthrift_POPULATED)
-    FetchContent_Populate(fbthrift)
-  endif()
-  
-  # 配置 fbthrift
-  set(fbthrift_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/fbthrift-build)
-  
-  # 设置 xxhash 的安装目录
-  set(XXHASH_INSTALL_DIR ${CMAKE_BINARY_DIR}/xxhash-install)
-  
-  # 构建 CMAKE_PREFIX_PATH（包括所有依赖，包括 xxhash）
-  set(FBTHRIFT_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${WANGLE_INSTALL_DIR};${MVFST_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${LIBEVENT_INSTALL_DIR};${XXHASH_INSTALL_DIR}")
-  
-  # 设置 libevent 和 zstd 的路径
-  # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
-  set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
-  set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
-  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
-  set(ZSTD_INCLUDE_DIRS "${ZSTD_INSTALL_DIR}/include")
-  set(ZSTD_LIBRARIES "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
-  
-  execute_process(
-    COMMAND ${CMAKE_COMMAND}
-      -S ${fbthrift_SOURCE_DIR}
-      -B ${fbthrift_BINARY_DIR}
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_INSTALL_PREFIX=${FBTHRIFT_INSTALL_DIR}
-      "-DCMAKE_PREFIX_PATH=${FBTHRIFT_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
-      "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
-      "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
-      "-DZSTD_ROOT=${ZSTD_INSTALL_DIR}"
-      "-DZSTD_INCLUDE_DIRS=${ZSTD_INCLUDE_DIRS}"
-      "-DZSTD_LIBRARIES=${ZSTD_LIBRARIES}"
-      # 使用统一的编译标志
-      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
-      -DBUILD_SHARED_LIBS=OFF
-      -DBUILD_TESTS=OFF
-      -DBUILD_EXAMPLES=OFF
-    RESULT_VARIABLE FBTHRIFT_CONFIG_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fbthrift_config.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/fbthrift_config_error.log
-  )
-  
-  if(NOT FBTHRIFT_CONFIG_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to configure fbthrift. Check ${CMAKE_BINARY_DIR}/fbthrift_config_error.log")
-  endif()
-  
-  # 编译 fbthrift
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} --build ${fbthrift_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
-    RESULT_VARIABLE FBTHRIFT_BUILD_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fbthrift_build.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/fbthrift_build_error.log
-  )
-  
-  if(NOT FBTHRIFT_BUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to build fbthrift. Check ${CMAKE_BINARY_DIR}/fbthrift_build_error.log")
-  endif()
-  
-  # 安装 fbthrift
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} --install ${fbthrift_BINARY_DIR} --prefix ${FBTHRIFT_INSTALL_DIR}
-    RESULT_VARIABLE FBTHRIFT_INSTALL_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/fbthrift_install.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/fbthrift_install_error.log
-  )
-  
-  if(NOT FBTHRIFT_INSTALL_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to install fbthrift. Check ${CMAKE_BINARY_DIR}/fbthrift_install_error.log")
-  endif()
-  
-  message(STATUS "fbthrift built and installed successfully")
-else()
-  message(STATUS "fbthrift already installed at ${FBTHRIFT_INSTALL_DIR}")
+# Xxhash - fbthrift uses find_package(Xxhash REQUIRED) via MODULE mode
+# Pre-set cache variables so FindXxhash.cmake finds our target
+FetchContent_GetProperties(xxhash)
+set(Xxhash_INCLUDE_DIR "${xxhash_SOURCE_DIR}" CACHE PATH "" FORCE)
+set(Xxhash_LIBRARY "xxhash" CACHE STRING "" FORCE)
+set(Xxhash_LIBRARY_RELEASE "xxhash" CACHE STRING "" FORCE)
+
+# Zstd - fbthrift's own FindZstd.cmake uses ZSTD_INCLUDE_DIRS (plural) and ZSTD_LIBRARIES (plural)
+# as find_path/find_library result variables (different from folly's singular names)
+FetchContent_GetProperties(zstd)
+set(ZSTD_INCLUDE_DIRS "${zstd_SOURCE_DIR}/lib" CACHE PATH "" FORCE)
+set(ZSTD_LIBRARIES "libzstd_static" CACHE STRING "" FORCE)
+
+# gflags bridge to avoid export() CMP0024 error
+set(gflags_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/gflags" CACHE PATH "" FORCE)
+
+# MODULE-mode dependencies: cache variables already set by folly.cmake
+# (GLOG_*, LIBGFLAGS_*, Boost via FindBoost bridge, etc.)
+
+# fbthrift's CMakeLists.txt is at the root of the source tree.
+# NOTE: We use manual FetchContent_Populate + add_subdirectory instead of
+# FetchContent_MakeAvailableWithArgs because the latter leaks ARGN into
+# subdirectory scope, and fbthrift's FindOpenSSL.cmake uses ${ARGN}.
+FetchContent_GetProperties(fbthrift)
+if(NOT fbthrift_POPULATED)
+  FetchContent_Populate(fbthrift)
+
+  set(BUILD_TESTS_OLD ${BUILD_TESTS})
+  set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
+  set(BUILD_EXAMPLES_OLD ${BUILD_EXAMPLES})
+  set(enable_tests_OLD ${enable_tests})
+
+  set(BUILD_TESTS OFF CACHE INTERNAL "")
+  set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+  set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
+  set(enable_tests OFF CACHE INTERNAL "")
+  set(CMAKE_SKIP_INSTALL_RULES_OLD ${CMAKE_SKIP_INSTALL_RULES})
+  set(CMAKE_SKIP_INSTALL_RULES ON)
+
+  add_subdirectory(${fbthrift_SOURCE_DIR} ${fbthrift_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+  set(CMAKE_SKIP_INSTALL_RULES ${CMAKE_SKIP_INSTALL_RULES_OLD})
+  set(BUILD_TESTS ${BUILD_TESTS_OLD} CACHE INTERNAL "")
+  set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_OLD} CACHE INTERNAL "")
+  set(BUILD_EXAMPLES ${BUILD_EXAMPLES_OLD} CACHE INTERNAL "")
+  set(enable_tests ${enable_tests_OLD} CACHE INTERNAL "")
+
+  # Fix: fbthrift uses include_directories(.) (directory-level) instead of
+  # target_include_directories(PUBLIC ...). This means include paths don't
+  # propagate to downstream consumers (like cachelib). Manually add them.
+  cmake_policy(SET CMP0079 NEW)
+  foreach(_tgt thriftcpp2 thriftprotocol thrift-core thriftannotation transport concurrency rpcmetadata)
+    if(TARGET ${_tgt})
+      target_include_directories(${_tgt} PUBLIC
+        $<BUILD_INTERFACE:${fbthrift_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${fbthrift_BINARY_DIR}>
+      )
+    endif()
+  endforeach()
 endif()
 
-# 将 fbthrift 的安装目录添加到 CMAKE_PREFIX_PATH
-list(APPEND CMAKE_PREFIX_PATH ${FBTHRIFT_INSTALL_DIR})
-
+# Create namespace aliases (fbthrift exports with NAMESPACE FBThrift:: at install time)
+if(TARGET thriftcpp2 AND NOT TARGET FBThrift::thriftcpp2)
+  add_library(FBThrift::thriftcpp2 ALIAS thriftcpp2)
+endif()
+if(TARGET thriftprotocol AND NOT TARGET FBThrift::thriftprotocol)
+  add_library(FBThrift::thriftprotocol ALIAS thriftprotocol)
+endif()
+if(TARGET thrift-core AND NOT TARGET FBThrift::thrift-core)
+  add_library(FBThrift::thrift-core ALIAS thrift-core)
+endif()
+if(TARGET thriftannotation AND NOT TARGET FBThrift::thriftannotation)
+  add_library(FBThrift::thriftannotation ALIAS thriftannotation)
+endif()

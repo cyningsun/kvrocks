@@ -15,103 +15,65 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# 防止重复包含此文件
 include_guard()
 
-# 引入项目的工具函数库
 include(cmake/utils.cmake)
 
-# wangle - Facebook 的 C++ 网络库
-# 依赖：folly, fizz, googletest
-# 注意：wangle 的 CMakeLists.txt 在 wangle/wangle 子目录中
+# wangle - Facebook's C++ networking library
+# Dependencies: folly, fizz, OpenSSL, libevent
 FetchContent_DeclareGitHubWithMirror(wangle
-  facebook/wangle v2025.07.28.00
-  MD5=e4dc393e4a802fedf080fc1fb2dcf0ff
+  facebook/wangle v2024.06.24.00
+  MD5=4daadda53a1698ab024f9d4b55e1edbe
 )
 
-# 设置 wangle 的安装目录
-set(WANGLE_INSTALL_DIR ${CMAKE_BINARY_DIR}/wangle-install)
+# Set CONFIG-mode bridge dirs for wangle's find_package calls
+set(folly_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/folly" CACHE PATH "" FORCE)
+set(fizz_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/fizz" CACHE PATH "" FORCE)
+set(fmt_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/fmt" CACHE PATH "" FORCE)
+set(gflags_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/gflags" CACHE PATH "" FORCE)
+# Libevent bridge to avoid get_target_property(... LOCATION) NOTFOUND issue
+set(Libevent_DIR "${PROJECT_SOURCE_DIR}/cmake/configs/libevent" CACHE PATH "" FORCE)
 
-if(NOT EXISTS ${WANGLE_INSTALL_DIR}/lib/libwangle.a)
-  message(STATUS "Building and installing wangle (this may take a while)...")
-  
-  # 获取 wangle 源码
-  FetchContent_GetProperties(wangle)
-  if(NOT wangle_POPULATED)
-    FetchContent_Populate(wangle)
+# MODULE-mode dependencies: cache variables already set by folly.cmake
+
+# wangle's CMakeLists.txt is in wangle/wangle/ subdirectory
+FetchContent_GetProperties(wangle)
+if(NOT wangle_POPULATED)
+  FetchContent_Populate(wangle)
+
+  set(BUILD_TESTS_OLD ${BUILD_TESTS})
+  set(BUILD_SHARED_LIBS_OLD ${BUILD_SHARED_LIBS})
+  set(BUILD_EXAMPLES_OLD ${BUILD_EXAMPLES})
+
+  set(BUILD_TESTS OFF CACHE INTERNAL "")
+  set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
+  set(BUILD_EXAMPLES OFF CACHE INTERNAL "")
+  set(CMAKE_SKIP_INSTALL_RULES_OLD ${CMAKE_SKIP_INSTALL_RULES})
+  set(CMAKE_SKIP_INSTALL_RULES ON)
+
+  # Fix: wangle's FindLibEvent.cmake does get_target_property(LIBEVENT_LIB event LOCATION)
+  # which returns NOTFOUND because 'event' is an INTERFACE target (no LOCATION property).
+  # Solution: inject our bridge FindLibEvent.cmake into wangle's cmake/ directory
+  # (highest priority in wangle's CMAKE_MODULE_PATH) so it's found before the broken one.
+  file(COPY "${PROJECT_SOURCE_DIR}/cmake/modules/FindLibEvent.cmake"
+       DESTINATION "${wangle_SOURCE_DIR}/wangle/cmake/")
+
+  add_subdirectory(${wangle_SOURCE_DIR}/wangle ${wangle_BINARY_DIR} EXCLUDE_FROM_ALL)
+
+  # Fix: wangle uses $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/..> which resolves to
+  # the wrong path in add_subdirectory mode. Add the correct include base directory.
+  if(TARGET wangle)
+    cmake_policy(SET CMP0079 NEW)
+    target_include_directories(wangle PUBLIC $<BUILD_INTERFACE:${wangle_SOURCE_DIR}>)
   endif()
-  
-  # 配置 wangle（CMakeLists.txt 在 wangle/wangle 子目录）
-  set(wangle_BINARY_DIR ${CMAKE_BINARY_DIR}/_deps/wangle-build)
-  
-  # 构建 CMAKE_PREFIX_PATH（包括所有依赖）
-  set(WANGLE_PREFIX_PATH "${FOLLY_INSTALL_DIR};${FIZZ_INSTALL_DIR};${FMT_INSTALL_DIR};${BOOST_INSTALL_DIR};${GFLAGS_INSTALL_DIR};${GLOG_INSTALL_DIR};${DOUBLE_CONVERSION_INSTALL_DIR};${LIBEVENT_INSTALL_DIR}")
-  
-  # 设置 libevent 和 zstd 的路径
-  # libevent 使用已安装的版本（由 folly.cmake 编译和安装）
-  set(LIBEVENT_INCLUDE_DIR "${LIBEVENT_INSTALL_DIR}/include")
-  set(LIBEVENT_LIB_DIR "${LIBEVENT_INSTALL_DIR}/lib")
-  # zstd 使用已安装的版本（由 cachelib.cmake 编译和安装）
-  set(ZSTD_INSTALL_DIR ${CMAKE_BINARY_DIR}/zstd-install)
-  set(ZSTD_INCLUDE_DIR "${ZSTD_INSTALL_DIR}/include")
-  set(ZSTD_LIBRARY "${ZSTD_INSTALL_DIR}/lib/libzstd.a")
-  
-  execute_process(
-    COMMAND ${CMAKE_COMMAND}
-      -S ${wangle_SOURCE_DIR}/wangle
-      -B ${wangle_BINARY_DIR}
-      -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
-      -DCMAKE_INSTALL_PREFIX=${WANGLE_INSTALL_DIR}
-      "-DCMAKE_PREFIX_PATH=${WANGLE_PREFIX_PATH}"
-      "-DCMAKE_LIBRARY_PATH=${ZSTD_INSTALL_DIR}/lib"
-      "-DCMAKE_INCLUDE_PATH=${ZSTD_INCLUDE_DIR}"
-      "-DLIBEVENT_INCLUDE_DIR=${LIBEVENT_INCLUDE_DIR}"
-      "-DLIBEVENT_LIB=${LIBEVENT_LIB_DIR}/libevent.a"
-      "-DZSTD_INCLUDE_DIR=${ZSTD_INCLUDE_DIR}"
-      "-DZSTD_LIBRARY_RELEASE=${ZSTD_LIBRARY}"
-      # 使用统一的编译标志
-      "-DCMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}"
-      -DBUILD_SHARED_LIBS=OFF
-      -DBUILD_TESTS=OFF
-      -DBUILD_EXAMPLES=OFF
-    RESULT_VARIABLE WANGLE_CONFIG_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/wangle_config.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/wangle_config_error.log
-  )
-  
-  if(NOT WANGLE_CONFIG_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to configure wangle. Check ${CMAKE_BINARY_DIR}/wangle_config_error.log")
-  endif()
-  
-  # 编译 wangle
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} --build ${wangle_BINARY_DIR} --config ${CMAKE_BUILD_TYPE} -j4
-    RESULT_VARIABLE WANGLE_BUILD_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/wangle_build.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/wangle_build_error.log
-  )
-  
-  if(NOT WANGLE_BUILD_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to build wangle. Check ${CMAKE_BINARY_DIR}/wangle_build_error.log")
-  endif()
-  
-  # 安装 wangle
-  execute_process(
-    COMMAND ${CMAKE_COMMAND} --install ${wangle_BINARY_DIR} --prefix ${WANGLE_INSTALL_DIR}
-    RESULT_VARIABLE WANGLE_INSTALL_RESULT
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/wangle_install.log
-    ERROR_FILE ${CMAKE_BINARY_DIR}/wangle_install_error.log
-  )
-  
-  if(NOT WANGLE_INSTALL_RESULT EQUAL 0)
-    message(FATAL_ERROR "Failed to install wangle. Check ${CMAKE_BINARY_DIR}/wangle_install_error.log")
-  endif()
-  
-  message(STATUS "wangle built and installed successfully")
-else()
-  message(STATUS "wangle already installed at ${WANGLE_INSTALL_DIR}")
+
+  set(CMAKE_SKIP_INSTALL_RULES ${CMAKE_SKIP_INSTALL_RULES_OLD})
+  set(BUILD_TESTS ${BUILD_TESTS_OLD} CACHE INTERNAL "")
+  set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_OLD} CACHE INTERNAL "")
+  set(BUILD_EXAMPLES ${BUILD_EXAMPLES_OLD} CACHE INTERNAL "")
 endif()
 
-# 将 wangle 的安装目录添加到 CMAKE_PREFIX_PATH
-list(APPEND CMAKE_PREFIX_PATH ${WANGLE_INSTALL_DIR})
-
+# Create namespace aliases (wangle exports with NAMESPACE wangle:: at install time)
+if(TARGET wangle AND NOT TARGET wangle::wangle)
+  add_library(wangle::wangle ALIAS wangle)
+endif()

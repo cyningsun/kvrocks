@@ -40,6 +40,10 @@ FetchContent_GetProperties(gflags)
 # 这样 glog 的 find_package(gflags) 会优先找到我们构建的版本
 list(APPEND CMAKE_PREFIX_PATH ${gflags_BINARY_DIR})
 
+# Skip install rules to avoid export validation errors
+# (glog's install(EXPORT) references gflags_nothreads_static which is in multiple export sets)
+set(CMAKE_SKIP_INSTALL_RULES ON)
+
 # 使用项目的 FetchContent_MakeAvailableWithArgs 函数下载并编译 glog
 # 配置选项说明：
 #   BUILD_SHARED_LIBS=OFF - 编译静态库
@@ -52,4 +56,6 @@ FetchContent_MakeAvailableWithArgs(glog
   WITH_PKGCONFIG=OFF
   WITH_GFLAGS=OFF
 )
+
+set(CMAKE_SKIP_INSTALL_RULES OFF)
 

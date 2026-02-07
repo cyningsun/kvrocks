@@ -107,3 +107,12 @@ endif()
 # list(APPEND CMAKE_PREFIX_PATH ${LIBURING_INSTALL_DIR})
 
 message(STATUS "liburing installed to ${LIBURING_INSTALL_DIR} (not added to CMAKE_PREFIX_PATH)")
+
+# Create IMPORTED target for liburing
+if(NOT TARGET liburing::liburing)
+  add_library(liburing::liburing STATIC IMPORTED GLOBAL)
+  set_target_properties(liburing::liburing PROPERTIES
+    IMPORTED_LOCATION "${LIBURING_INSTALL_DIR}/lib/liburing.a"
+    INTERFACE_INCLUDE_DIRECTORIES "${LIBURING_INSTALL_DIR}/include"
+  )
+endif()

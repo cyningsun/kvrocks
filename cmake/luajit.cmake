@@ -44,7 +44,7 @@ FetchContent_DeclareGitHubWithMirror(luajit
         MD5=7ff3e5ca4ddec59be2c2f97c5ff881d0)
 
 FetchContent_GetProperties(luajit)
-if (NOT lua_POPULATED)
+if (NOT luajit_POPULATED)
   FetchContent_Populate(luajit)
 
   set(LUA_CFLAGS "-DLUA_ANSI -DENABLE_CJSON_GLOBAL -DREDIS_STATIC= -DLUA_USE_MKSTEMP")
@@ -67,7 +67,12 @@ if (NOT lua_POPULATED)
   file(COPY ${LUA_PUBLIC_HEADERS} DESTINATION ${luajit_BINARY_DIR}/include)
 endif()
 
+add_library(luajit_static STATIC IMPORTED GLOBAL)
+set_target_properties(luajit_static PROPERTIES
+  IMPORTED_LOCATION "${luajit_SOURCE_DIR}/src/libluajit.a"
+)
+add_dependencies(luajit_static make_luajit)
+
 add_library(luajit INTERFACE)
 target_include_directories(luajit INTERFACE ${luajit_BINARY_DIR}/include)
-target_link_libraries(luajit INTERFACE ${luajit_SOURCE_DIR}/src/libluajit.a dl)
-add_dependencies(luajit make_luajit)
+target_link_libraries(luajit INTERFACE luajit_static ${CMAKE_DL_LIBS})
