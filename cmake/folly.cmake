@@ -25,14 +25,6 @@ FetchContent_DeclareGitHubWithMirror(folly
 )
 
 # ============================================================================
-# Ensure our bridge modules are in CMAKE_MODULE_PATH
-# ============================================================================
-# This must be done BEFORE add_subdirectory(folly) so that:
-# 1. Our FindBoost.cmake bridge is found before CMake's built-in FindBoost
-# 2. Our bridge modules are available to folly's Find modules
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
-
-# ============================================================================
 # Get source/binary dirs of already-available dependencies
 # ============================================================================
 FetchContent_GetProperties(double-conversion)

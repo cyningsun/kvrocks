@@ -220,6 +220,9 @@ if(APPLE AND NOT CMAKE_OSX_SYSROOT)
   endif()
 endif()
 
+# MODULE-mode bridge search path: our Find*.cmake files override CMake builtins
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+
 include(cmake/gtest.cmake)
 include(cmake/snappy.cmake)
 include(cmake/lz4.cmake)

@@ -25,7 +25,6 @@ FetchContent_DeclareGitHubWithMirror(snappy
 )
 
 FetchContent_MakeAvailableWithArgs(snappy
-  CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules
   SNAPPY_BUILD_TESTS=OFF
   SNAPPY_BUILD_BENCHMARKS=OFF
   BUILD_SHARED_LIBS=OFF

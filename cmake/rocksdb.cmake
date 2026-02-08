@@ -50,7 +50,6 @@ set(CMAKE_SKIP_INSTALL_RULES ON)
 FetchContent_MakeAvailableWithArgs(rocksdb
   CMAKE_CXX_FLAGS=${CMAKE_CXX_FLAGS}
   CMAKE_C_FLAGS=${CMAKE_C_FLAGS}
-  CMAKE_MODULE_PATH=${PROJECT_SOURCE_DIR}/cmake/modules # to locate FindJeMalloc.cmake
   Snappy_DIR=${PROJECT_SOURCE_DIR}/cmake/configs/snappy
   FAIL_ON_WARNINGS=OFF
   WITH_TESTS=OFF
